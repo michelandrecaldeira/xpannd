@@ -2182,11 +2182,10 @@ ${maikeTurn>=MAIKE_MAX_TURNS-1?'ATENÇÃO: Este é o último turno. Entregue os 
   const systemPrompt=(MAIKE_SYSTEM[lang]||MAIKE_SYSTEM.pt)+'\n\nIDIOMA OBRIGATÓRIO: '+(langInstr[lang]||langInstr.pt)+'\n\n'+xmapCtx;
 
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    const resp=await fetch('/api/maike',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
         max_tokens:280,
         system:systemPrompt,
         messages:maikeHistory.length?maikeHistory:[{role:'user',content:'[START]'}]
