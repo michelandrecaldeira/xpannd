@@ -2245,10 +2245,10 @@ function appendChat(role, html, id){
 }
 
 function endMaike(){
-  const input=document.getElementById('maike-input-row');
-  if(input)input.style.display='none';
+  const inputRow=document.getElementById('maike-input-row');
+  if(inputRow)inputRow.style.display='none';
 
-  // Send briefing to Sheets + email
+  // Send briefing to Sheets
   const briefing={
     tipo:'MAIKE_BRIEFING',
     nome:maikeContext.nome,
@@ -2268,9 +2268,21 @@ function endMaike(){
     const cta=document.createElement('div');
     cta.className='maike-final-cta';
     const ctaLabels={
-      pt:{h:'Análise concluída.',sub:'Michel Caldeira tem 30 minutos para você.',btn:'Agendar 30 min agora →'},
-      en:{h:'Analysis complete.',sub:'Michel Caldeira has 30 minutes for you.',btn:'Book 30 min now →'},
-      es:{h:'Análisis concluido.',sub:'Michel Caldeira tiene 30 minutos para ti.',btn:'Reservar 30 min ahora →'}
+      pt:{
+        h:'Sua janela está aberta.',
+        sub:'Michel Caldeira tem 30 minutos reservados para você — uma conversa direta, sem pitch, sobre o próximo movimento real da sua expansão.',
+        btn:'Garantir minha sessão agora →'
+      },
+      en:{
+        h:'Your window is open.',
+        sub:'Michel Caldeira has 30 minutes set aside for you — a direct conversation, no pitch, about your next real move into new markets.',
+        btn:'Secure my session now →'
+      },
+      es:{
+        h:'Tu ventana está abierta.',
+        sub:'Michel Caldeira tiene 30 minutos reservados para ti — una conversación directa, sin pitch, sobre tu próximo movimiento real de expansión.',
+        btn:'Asegurar mi sesión ahora →'
+      }
     };
     const cl=ctaLabels[maikeContext.lang||'pt']||ctaLabels.pt;
     cta.innerHTML=`
