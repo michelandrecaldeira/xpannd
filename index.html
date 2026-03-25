@@ -2209,7 +2209,7 @@ ${maikeTurn>=MAIKE_MAX_TURNS-1?'ATENÇÃO: Este é o último turno. Entregue os 
 
     // Re-enable or end
     if(maikeTurn>=MAIKE_MAX_TURNS){
-      endMaike();
+      setTimeout(()=>endMaike(), 1200);
     } else {
       if(input){input.disabled=false;input.focus();}
       if(btn)btn.disabled=false;
