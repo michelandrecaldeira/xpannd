@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Xpannd&#7506;&#7488;&#7488;&#7504; — Market Development LATAM</title>
+<title>Xpannd — Market Development LATAM</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 /* ─── RESET & BASE ─── */
@@ -403,7 +403,7 @@ section{padding:100px 6vw;}
 .ecosystem-title em{font-style:italic;color:var(--copper2);}
 .ecosystem-sub{font-size:14px;font-weight:300;color:rgba(247,244,239,0.5);line-height:1.72;}
 .ecosystem-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);
+  display:grid;grid-template-columns:repeat(4,1fr);
   gap:1px;background:rgba(184,115,51,0.08);
 }
 .ecosystem-card{
@@ -891,7 +891,7 @@ footer{background:#0E0C09;padding:40px 6vw;display:flex;justify-content:space-be
   .services-grid{grid-template-columns:1fr;}
   .svc-card{padding:22px 20px;}
   .ecosystem-header{grid-template-columns:1fr;gap:16px;padding:28px 20px;}
-  .ecosystem-grid{grid-template-columns:1fr 1fr;}
+  .ecosystem-grid{grid-template-columns:repeat(2,1fr);}
   .ecosystem-footer{padding:14px 20px;flex-wrap:wrap;gap:8px;}
 
   /* Diag band */
@@ -945,6 +945,29 @@ footer{background:#0E0C09;padding:40px 6vw;display:flex;justify-content:space-be
   /* M.AI.KE */
   .maike-shell{height:480px;}
   .maike-final-cta{padding:20px 16px;}
+
+  /* Modal inner padding */
+  .diag-inner{padding:24px 20px;}
+
+  /* Diagnostic intro heading */
+  .diag-intro-h{font-size:26px;letter-spacing:-0.5px;}
+
+  /* Quiz question text */
+  .q-text{font-size:19px;}
+
+  /* Result header/body padding */
+  .result-hdr{padding:24px 20px 18px;}
+  .result-body{padding:22px 20px;}
+  .result-footer{padding:14px 20px;}
+
+  /* Score number */
+  .score-n{font-size:46px;}
+
+  /* Process sidebar sticky off on mobile */
+  .process-sidebar{position:static;}
+
+  /* Diag band padding */
+  .diag-band{padding:36px 20px;}
 }
 
 @media(max-width:480px){
@@ -955,6 +978,24 @@ footer{background:#0E0C09;padding:40px 6vw;display:flex;justify-content:space-be
   .hero-stats{grid-template-columns:repeat(3,1fr);}
   .nav-links>li{display:none;}
   .nav-links>li:last-child,.nav-links>li:nth-last-child(2){display:flex;}
+
+  /* Modal inner tighter on small phones */
+  .diag-inner{padding:20px 16px;}
+  .diag-intro-h{font-size:23px;}
+  .q-text{font-size:17px;}
+  .result-hdr{padding:20px 16px 16px;}
+  .result-body{padding:18px 16px;}
+  .result-footer{padding:12px 16px;}
+  .score-n{font-size:40px;}
+
+  /* Hide option subtitle to save space */
+  .opt-s{display:none;}
+
+  /* Hero action box tighter */
+  .hero-action-box{padding:16px 18px;}
+
+  /* Eyebrow smaller letter-spacing */
+  .hero-eyebrow{font-size:9px;letter-spacing:0.14em;}
 }
 </style>
 </head>
@@ -993,7 +1034,7 @@ footer{background:#0E0C09;padding:40px 6vw;display:flex;justify-content:space-be
     <!-- LEFT — headline -->
     <div class="hero-left">
       <div class="hero-eyebrow" id="hero-eyebrow">Market Development · LATAM · SaaS · Fintech · B2B Industrial</div>
-      <h1 class="hero-h1" id="hero-h1-text"><span id="hero-line1">Entre no</span><br><span id="hero-line2">mercado.</span><br><em><span id="typewriter"></span><span class="cursor" id="hero-cursor"></span></em></h1>
+      <h1 class="hero-h1" id="hero-h1-text"><span id="hero-line1">Expanda para um</span><br><span id="hero-line2">novo mercado.</span><br><em><span id="typewriter"></span><span class="cursor" id="hero-cursor"></span></em></h1>
       <p class="hero-sub" id="hero-sub">Aceleramos a expansão internacional de empresas — para LATAM e para o mundo. De tecnologia a bens industriais, de fintechs a SaaS — estratégia com execução real no campo.</p>
     </div>
 
@@ -1080,14 +1121,14 @@ footer{background:#0E0C09;padding:40px 6vw;display:flex;justify-content:space-be
       <p class="ecosystem-sub" id="eco-sub">Entramos no mercado com você e ficamos até a operação estar de pé. Isso significa que além da estratégia comercial, conectamos você a um ecossistema de especialistas locais que cobre cada dimensão da implantação.</p>
     </div>
     <div class="ecosystem-grid" id="eco-grid">
-      <div class="ecosystem-card"><div class="ecosystem-icon">◆</div><div class="ecosystem-card-title">Constituição & Legal</div><p class="ecosystem-card-desc">Abertura de empresa, estatutos, domicílio fiscal, representação legal de sócios estrangeiros e compliance regulatório — da JUCEX ao CNPJ, sem burocracia surpresa.</p></div>
-      <div class="ecosystem-card"><div class="ecosystem-icon">◆</div><div class="ecosystem-card-title">Contabilidade & Fiscal</div><p class="ecosystem-card-desc">Escrituração contábil, cálculo de tributos, nota fiscal eletrônica, obrigações acessórias e relatórios financeiros mensais. Operação limpa desde o primeiro mês.</p></div>
-      <div class="ecosystem-card"><div class="ecosystem-icon">◆</div><div class="ecosystem-card-title">Contratação Especializada</div><p class="ecosystem-card-desc">Recrutamento de executivos e equipes comerciais locais, contratos de trabalho em conformidade com a CLT, gestão de folha e benefícios — sem risco trabalhista.</p></div>
-      <div class="ecosystem-card"><div class="ecosystem-icon">◆</div><div class="ecosystem-card-title">Gestão Financeira</div><p class="ecosystem-card-desc">Contas a pagar e receber, gestão bancária nacional e internacional, previsão de caixa e relatórios de performance. Controle financeiro total em mercado novo.</p></div>
-      <div class="ecosystem-card"><div class="ecosystem-icon">◆</div><div class="ecosystem-card-title">Contratos Comerciais</div><p class="ecosystem-card-desc">Estruturação e revisão de contratos com distribuidores, representantes e clientes. Proteção jurídica nos acordos comerciais — negociados com quem conhece o mercado.</p></div>
-      <div class="ecosystem-card"><div class="ecosystem-icon">◆</div><div class="ecosystem-card-title">Importação & Regulatório</div><p class="ecosystem-card-desc">Estudo de viabilidade de importação, classificação fiscal de produtos, licenças e registros setoriais — eliminando os gargalos que travam entradas em LATAM.</p></div>
-      <div class="ecosystem-card"><div class="ecosystem-icon">◆</div><div class="ecosystem-card-title">Marketing Digital & Pipeline</div><p class="ecosystem-card-desc">SEO local, mídia paga, automação de marketing e estratégia de conteúdo adaptada ao mercado-alvo. Presença digital que gera pipeline desde o primeiro dia.</p></div>
-      <div class="ecosystem-card"><div class="ecosystem-icon">◆</div><div class="ecosystem-card-title">Comunicação & Influência</div><p class="ecosystem-card-desc">Estratégia de influenciadores B2B, relações públicas locais, posicionamento de marca e comunicação adaptada à cultura do mercado. Visibilidade que converte.</p></div>
+      <div class="ecosystem-card"><div class="ecosystem-icon">◆</div><div class="ecosystem-card-title">Constituição & Legal</div><p class="ecosystem-card-desc">Abertura de empresa, domicílio fiscal, representação legal e compliance regulatório — sem burocracia surpresa.</p></div>
+      <div class="ecosystem-card"><div class="ecosystem-icon">◆</div><div class="ecosystem-card-title">Contabilidade & Fiscal</div><p class="ecosystem-card-desc">Escrituração contábil, tributos, nota fiscal eletrônica e obrigações acessórias. Operação limpa desde o primeiro mês.</p></div>
+      <div class="ecosystem-card"><div class="ecosystem-icon">◆</div><div class="ecosystem-card-title">Contratação Especializada</div><p class="ecosystem-card-desc">Recrutamento de equipes comerciais locais, contratos CLT, folha e benefícios — sem risco trabalhista.</p></div>
+      <div class="ecosystem-card"><div class="ecosystem-icon">◆</div><div class="ecosystem-card-title">Gestão Financeira</div><p class="ecosystem-card-desc">Contas a pagar e receber, gestão bancária, previsão de caixa e relatórios de performance em mercado novo.</p></div>
+      <div class="ecosystem-card"><div class="ecosystem-icon">◆</div><div class="ecosystem-card-title">Contratos Comerciais</div><p class="ecosystem-card-desc">Estruturação e revisão de contratos com distribuidores, representantes e clientes. Proteção jurídica nos acordos.</p></div>
+      <div class="ecosystem-card"><div class="ecosystem-icon">◆</div><div class="ecosystem-card-title">Importação & Regulatório</div><p class="ecosystem-card-desc">Viabilidade de importação, classificação fiscal, licenças e registros setoriais — eliminando gargalos de entrada.</p></div>
+      <div class="ecosystem-card"><div class="ecosystem-icon">◆</div><div class="ecosystem-card-title">Marketing Digital & Pipeline</div><p class="ecosystem-card-desc">SEO local, mídia paga, automação e conteúdo adaptado ao mercado-alvo. Presença digital que gera pipeline.</p></div>
+      <div class="ecosystem-card"><div class="ecosystem-icon">◆</div><div class="ecosystem-card-title">Comunicação & Influência</div><p class="ecosystem-card-desc">Influenciadores B2B, relações públicas locais e posicionamento de marca adaptado à cultura do mercado.</p></div>
     </div>
     <div class="ecosystem-footer">
       <span id="eco-footer1">Xpannd coordena o ecossistema</span>
@@ -1369,7 +1410,11 @@ const T={
       {axis:"Axis 6 — Market window",text:"Is there a competitive window closing in your target market?",hint:"Timing is the most undervalued factor in market entry — Eisenhardt & Brown, HBR (1998).",
        opts:[{l:"A",t:"Yes — 6 to 12 months",s:"Competitors moving, consolidation underway."},{l:"B",t:"Yes — 1 to 3 years",s:"Moderate urgency. Time to plan well."},{l:"C",t:"No — stable market",s:"Less pressure, lower timing differentiation."},{l:"D",t:"We can't assess this",s:"Absence of local competitive intelligence."}]},
       {axis:"Axis 7 — Financial readiness",text:"Is the market entry budget already approved?",hint:"Projects without approved budget are 4x more likely to be cancelled — international project management research.",
-       opts:[{l:"A",t:"Yes — allocated and available now",s:"Ready to execute. Just need the right partner."},{l:"B",t:"In approval — decision in 90 days",s:"Hot pipeline. Time to structure a proposal."},{l:"C",t:"Planning for next budget cycle",s:"6–18 month horizon."},{l:"D",t:"No defined budget yet",s:"Expansion still at ideation stage."}]}
+       opts:[{l:"A",t:"Yes — allocated and available now",s:"Ready to execute. Just need the right partner."},{l:"B",t:"In approval — decision in 90 days",s:"Hot pipeline. Time to structure a proposal."},{l:"C",t:"Planning for next budget cycle",s:"6–18 month horizon."},{l:"D",t:"No defined budget yet",s:"Expansion still at ideation stage."}]},
+      {axis:"Context — Sector",text:"Which sector does your company operate in?",hint:"This helps us calibrate the diagnostic to your market reality.",
+       opts:[{l:"A",t:"SaaS / Technology",s:"Software, digital platforms, tech services."},{l:"B",t:"Fintech / Payments",s:"Financial services, payments, digital banking."},{l:"C",t:"Industrial Goods / Manufacturing",s:"Physical products, B2B industrial, inputs."},{l:"D",t:"Consumer Goods B2B / Other",s:"Consumer goods, health, agri, services or other."}]},
+      {axis:"Context — Target market",text:"Which is the main market you are evaluating?",hint:"Each market has its own dynamics. This guides the entire analysis.",
+       opts:[{l:"A",t:"Brazil",s:"Largest LATAM market — complex, but strategic."},{l:"B",t:"Colombia / Andean",s:"Colombia, Peru, Chile, Ecuador — growing regional hub."},{l:"C",t:"Mexico / LATAM North",s:"Mexico, Central America, Caribbean — proximity to USA."},{l:"D",t:"USA / Europe / Multiple",s:"Global or multi-regional expansion."}]}
     ],
     profiles:[
       {min:75,name:"Strategic Executor",sub:"High maturity · Open window · Ready to act",desc:"You have clarity, structure and momentum. The main risk isn't the decision to enter — it's the cost of each week without a local execution partner.",insights:[{lbl:"Critical alert",txt:"With your competitive window, every <b>30 days of delay</b> has a positioning cost. The LATAM market penalizes those who arrive second."},{lbl:"Identified advantage",txt:"Your maturity level is rare. Companies at this stage enter markets <b>60% faster</b> with dedicated local execution."},{lbl:"Recommendation",txt:"The diagnostic suggests a <b>hybrid model</b>: local representative in the first 90 days + transition to own operation in cycle 2."}]},
@@ -1418,7 +1463,11 @@ const T={
       {axis:"Eje 6 — Ventana de mercado",text:"¿Hay una ventana competitiva cerrándose?",hint:"El timing es el factor más subvalorado en market entry — Eisenhardt & Brown, HBR (1998).",
        opts:[{l:"A",t:"Sí — 6 a 12 meses",s:"Competidores en movimiento, consolidación en curso."},{l:"B",t:"Sí — 1 a 3 años",s:"Urgencia moderada. Tiempo para planificar bien."},{l:"C",t:"No — mercado estable",s:"Menos presión, menor diferenciación de timing."},{l:"D",t:"No sabemos evaluarlo",s:"Ausencia de inteligencia competitiva local."}]},
       {axis:"Eje 7 — Preparación financiera",text:"¿El presupuesto de market entry ya está aprobado?",hint:"Los proyectos sin presupuesto aprobado tienen 4x más probabilidades de cancelarse — investigación en gestión de proyectos internacionales.",
-       opts:[{l:"A",t:"Sí — asignado y disponible ahora",s:"Listo para ejecutar. Solo falta el socio correcto."},{l:"B",t:"En aprobación — decisión en 90 días",s:"Pipeline caliente. Momento de estructurar propuesta."},{l:"C",t:"Planificación para el próximo ciclo",s:"Horizonte de 6–18 meses."},{l:"D",t:"No tenemos presupuesto definido",s:"La expansión aún está en etapa de ideación."}]}
+       opts:[{l:"A",t:"Sí — asignado y disponible ahora",s:"Listo para ejecutar. Solo falta el socio correcto."},{l:"B",t:"En aprobación — decisión en 90 días",s:"Pipeline caliente. Momento de estructurar propuesta."},{l:"C",t:"Planificación para el próximo ciclo",s:"Horizonte de 6–18 meses."},{l:"D",t:"No tenemos presupuesto definido",s:"La expansión aún está en etapa de ideación."}]},
+      {axis:"Contexto — Sector",text:"¿En qué sector opera tu empresa?",hint:"Esto nos ayuda a calibrar el diagnóstico para la realidad de tu mercado.",
+       opts:[{l:"A",t:"SaaS / Tecnología",s:"Software, plataformas digitales, servicios tech."},{l:"B",t:"Fintech / Medios de Pago",s:"Servicios financieros, pagos, banca digital."},{l:"C",t:"Bienes Industriales / Manufactura",s:"Productos físicos, B2B industrial, insumos."},{l:"D",t:"Bienes de Consumo B2B / Otro",s:"Consumer goods, salud, agro, servicios u otro."}]},
+      {axis:"Contexto — Mercado objetivo",text:"¿Cuál es el principal mercado que estás evaluando?",hint:"Cada mercado tiene dinámicas propias. Esto orienta todo el análisis.",
+       opts:[{l:"A",t:"Brasil",s:"Mayor mercado LATAM — complejo, pero estratégico."},{l:"B",t:"Colombia / Andinos",s:"Colombia, Perú, Chile, Ecuador — hub regional en crecimiento."},{l:"C",t:"México / LATAM Norte",s:"México, América Central, Caribe — proximidad con EUA."},{l:"D",t:"EUA / Europa / Múltiples",s:"Expansión global o multi-regional."}]}
     ],
     profiles:[
       {min:75,name:"Ejecutor Estratégico",sub:"Alta madurez · Ventana abierta · Listo para actuar",desc:"Tienes claridad, estructura y momentum. El riesgo principal no es la decisión de entrar — es el costo de cada semana sin un socio de ejecución local.",insights:[{lbl:"Alerta crítica",txt:"Con tu ventana competitiva, cada <b>30 días de retraso</b> tiene un costo de posicionamiento. El mercado LATAM penaliza a quien llega segundo."},{lbl:"Ventaja identificada",txt:"Tu nivel de madurez es poco común. Las empresas en esta etapa entran en mercados <b>60% más rápido</b> con ejecución local dedicada."},{lbl:"Recomendación",txt:"El diagnóstico sugiere un <b>modelo híbrido</b>: representante local en los primeros 90 días + transición a operación propia en el ciclo 2."}]},
@@ -1452,7 +1501,7 @@ const PAGE={
     navDiag:'Diagnóstico ao Vivo',navCta:'Falar →',
     footerServices:'Serviços',footerProcess:'Processo',footerAbout:'Sobre',footerContact:'Contato',
     footerCopy:'© 2026 Xpannd · São Paulo, SP · Brasil',
-    heroLine1:'Entre no',heroLine2:'mercado.',
+    heroLine1:'Expanda para um',heroLine2:'novo mercado.',
     heroEyebrow:'Market Development · LATAM · SaaS · Fintech · B2B Industrial',
     heroH1:'Entre no<br>mercado.<br><em><span id="typewriter"></span><span class="cursor" id="hero-cursor"></span></em>',
     heroSub:'Aceleramos a expansão internacional de empresas — para LATAM e para o mundo. De tecnologia a bens industriais, de fintechs a SaaS — estratégia com execução real no campo.',
@@ -1538,7 +1587,7 @@ const PAGE={
     navDiag:'Live Diagnostic',navCta:'Talk to us →',
     footerServices:'Services',footerProcess:'Process',footerAbout:'About',footerContact:'Contact',
     footerCopy:'© 2026 Xpannd · São Paulo, SP · Brazil',
-    heroLine1:'Enter the',heroLine2:'market.',
+    heroLine1:'Expand into a',heroLine2:'new market.',
     heroEyebrow:'Market Development · LATAM · SaaS · Fintech · B2B Industrial',
     heroH1:'Enter the<br>market.<br><em><span id="typewriter"></span><span class="cursor" id="hero-cursor"></span></em>',
     heroSub:'We accelerate the international expansion of companies — into LATAM and into the world. From technology to industrial goods, from fintechs to SaaS — strategy with real field execution.',
@@ -1626,7 +1675,7 @@ const PAGE={
     navDiag:'Diagnóstico en Vivo',navCta:'Hablar →',
     footerServices:'Servicios',footerProcess:'Proceso',footerAbout:'Nosotros',footerContact:'Contacto',
     footerCopy:'© 2026 Xpannd · São Paulo, SP · Brasil',
-    heroLine1:'Entra al',heroLine2:'mercado.',
+    heroLine1:'Expande a un',heroLine2:'nuevo mercado.',
     heroEyebrow:'Market Development · LATAM · SaaS · Fintech · B2B Industrial',
     heroH1:'Entra al<br>mercado.<br><em><span id="typewriter"></span><span class="cursor" id="hero-cursor"></span></em>',
     heroSub:'Aceleramos la expansión internacional de empresas — hacia LATAM y hacia el mundo. De tecnología a bienes industriales, de fintechs a SaaS — estrategia con ejecución real en el campo.',
