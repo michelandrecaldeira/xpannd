@@ -1810,7 +1810,7 @@ function setLang(l){
   renderPage(l);
 }
 
-const SHEETS_URL='https://script.google.com/macros/s/AKfycbwr2I7olv88DJvGnqkCAzHixd95YkUiwDoNpp_N0CfRBuLEESFNLb46REO3a1FaGXVWFA/exec';
+const SHEETS_URL='https://script.google.com/macros/s/AKfycbyt_3gCcTlf0MQtflRGLKPjUfUZ3W9JMfLH9-zuIBjBsHPeUHmG3SXbRUcLl6DpYWDJ/exec';
 function sendToSheets(payload){
   fetch(SHEETS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(()=>{});
 }
