@@ -1,17 +1,22 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "redirects": [
-    { "source": "/xpanndcrm", "destination": "/xpanndcrm/", "permanent": false },
-    { "source": "/XPANNDCRM", "destination": "/xpanndcrm/", "permanent": false },
-    { "source": "/XPANNDCRM/", "destination": "/xpanndcrm/", "permanent": false }
+    { "source": "/force", "destination": "/force/", "permanent": false },
+    { "source": "/FORCE", "destination": "/force/", "permanent": false },
+    { "source": "/FORCE/", "destination": "/force/", "permanent": false },
+    { "source": "/xpanndcrm", "destination": "/force/", "permanent": false },
+    { "source": "/xpanndcrm/", "destination": "/force/", "permanent": false },
+    { "source": "/xpanndcrm/:path*", "destination": "/force/:path*", "permanent": false },
+    { "source": "/XPANNDCRM", "destination": "/force/", "permanent": false },
+    { "source": "/XPANNDCRM/", "destination": "/force/", "permanent": false }
   ],
   "rewrites": [
-    { "source": "/xpanndcrm/", "destination": "https://xpanndcrm.vercel.app/xpanndcrm/" },
-    { "source": "/xpanndcrm/:path*", "destination": "https://xpanndcrm.vercel.app/xpanndcrm/:path*" }
+    { "source": "/force/", "destination": "https://xpanndcrm.vercel.app/force/" },
+    { "source": "/force/:path*", "destination": "https://xpanndcrm.vercel.app/force/:path*" }
   ],
   "headers": [
     {
-      "source": "/xpanndcrm/(.*)",
+      "source": "/force/(.*)",
       "headers": [
         { "key": "x-vercel-enable-rewrite-caching", "value": "0" }
       ]
