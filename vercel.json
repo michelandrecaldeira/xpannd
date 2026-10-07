@@ -8,7 +8,14 @@
     { "source": "/xpanndcrm/", "destination": "/force/", "permanent": false },
     { "source": "/xpanndcrm/:path*", "destination": "/force/:path*", "permanent": false },
     { "source": "/XPANNDCRM", "destination": "/force/", "permanent": false },
-    { "source": "/XPANNDCRM/", "destination": "/force/", "permanent": false }
+    { "source": "/XPANNDCRM/", "destination": "/force/", "permanent": false },
+    { "source": "/ai", "destination": "/ai/", "permanent": false },
+    { "source": "/AI", "destination": "/ai/", "permanent": false },
+    { "source": "/AI/", "destination": "/ai/", "permanent": false },
+    { "source": "/ia", "destination": "/ai/", "permanent": false },
+    { "source": "/ia/", "destination": "/ai/", "permanent": false },
+    { "source": "/IA", "destination": "/ai/", "permanent": false },
+    { "source": "/IA/", "destination": "/ai/", "permanent": false }
   ],
   "rewrites": [
     { "source": "/force/", "destination": "https://xpanndcrm.vercel.app/force/" },

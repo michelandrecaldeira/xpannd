@@ -1,0 +1,1657 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Michel André Caldeira · Xpannd AI</title>
+<meta name="description" content="Três plataformas de IA em produção em 8 semanas: Lynxs, Xpannd FORCE e Macros. Como foram construídas, com números, arquitetura e método.">
+<meta name="author" content="Michel André Caldeira">
+<link rel="canonical" href="https://www.xpannd.com.br/ai/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Xpannd">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:url" content="https://www.xpannd.com.br/ai/">
+<meta property="og:title" content="Do P&amp;L ao pull request · Michel André Caldeira">
+<meta property="og:description" content="Três plataformas de IA em produção em 8 semanas, com 1.420 testes automáticos e login com dois fatores.">
+<meta property="og:image" content="https://www.xpannd.com.br/ai/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0E0F12">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230E0F12'/%3E%3Cpath d='M17 36 L32 19 L47 36' fill='none' stroke='%23fff' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M16 45 H48' stroke='%232E4BF0' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: a sala de comando do Xpannd FORCE. Trilho preto fixo, vidro sobre gradiente frio,
+   um painel por produto com números e diagrama sempre à vista, e o detalhe em linhas que abrem.
+   Tema único e claro, de propósito: é a linguagem do FORCE. */
+:root{
+  --ground:#DCE4EA; --g1:#D3DDE7; --g2:#E2E9EE; --g3:#E9EEE7; --g4:#EEF1D9;
+  --ink:#15171C; --ink-2:#555B65; --ink-3:#6A707A;
+  --line:rgba(21,23,28,.08); --line-2:rgba(21,23,28,.14); --wash:rgba(21,23,28,.06);
+  --glass:rgba(255,255,255,.44); --glass-2:rgba(255,255,255,.70); --glass-3:rgba(255,255,255,.90); --glass-edge:rgba(255,255,255,.78);
+  --white:#FFFFFF; --black:#0E0F12; --black-2:#25272E; --rail-ink:#A9AFB8;
+  --on-dark-2:rgba(255,255,255,.74); --on-dark-line:rgba(255,255,255,.16); --on-dark-wash:rgba(255,255,255,.10);
+  --blue:#2E4BF0; --blue-bg:rgba(46,75,240,.10);
+  --teal:#3B7F98; --yellow:#F2E33A;
+  --good:#17905F; --good-bg:rgba(23,144,95,.14);
+  --crit:#D8412F; --crit-bg:rgba(216,65,47,.10);
+  --assessor:#36C5F0; --copiloto:#2EB67D; --base:#ECB22E;
+  --shadow:0 24px 48px -34px rgba(35,52,78,.38);
+  --shadow-pop:0 20px 40px -18px rgba(0,0,0,.55);
+  --r-panel:26px; --r-tile:22px; --r-node:14px;
+  --f-sans:'Manrope',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+img,svg{max-width:100%}
+html{background:var(--ground);scroll-behavior:smooth}
+body{margin:0;color:var(--ink);font-family:var(--f-sans);font-size:15px;line-height:1.55;
+  background:var(--ground) linear-gradient(118deg,var(--g1) 0%,var(--g2) 36%,var(--g3) 66%,var(--g4) 100%) fixed;
+  padding-inline:16px;padding-block:28px 116px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:var(--blue);text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:8px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
+.num,.kpi-n,.st-n,.kv,.lg-d,.tl-d{font-variant-numeric:tabular-nums}
+.ico{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ico.s{width:14px;height:14px}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- trilho ---------- */
+.rail{position:fixed;z-index:40;background:var(--black);display:flex;align-items:center;gap:6px}
+.rb{position:relative;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;color:var(--rail-ink);text-decoration:none;flex:none;transition:background .15s,color .15s}
+.rb .ico{width:20px;height:20px}
+.rb:hover{color:var(--white);background:var(--on-dark-wash)}
+.rb.on{background:var(--white);color:var(--black)}
+.rsep{background:var(--on-dark-line);flex:none}
+.shell{max-width:1240px;margin-inline:auto}
+@media (min-width:900px){
+  body{padding-inline:32px;padding-block:44px 80px}
+  .rail{left:0;top:0;bottom:0;width:76px;flex-direction:column;justify-content:flex-start;padding:26px 0}
+  .rb{width:46px;height:46px}
+  .rsep{width:28px;height:1px;margin:8px 0}
+  .rb::after{content:attr(data-tip);position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);background:var(--black);color:var(--white);font-size:12px;font-weight:600;padding:6px 10px;border-radius:10px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s}
+  .rb:hover::after,.rb:focus-visible::after{opacity:1}
+  .shell{margin-left:max(108px,calc((100% - 1240px) / 2));margin-right:auto}
+}
+@media (max-width:899px){
+  .rail{left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));border-radius:999px;padding:6px 8px;justify-content:space-between;box-shadow:var(--shadow-pop)}
+  .rsep,.rb.dk{display:none}
+}
+@media (max-width:359px){.rb{width:36px;height:36px}.rb .ico{width:18px;height:18px}}
+
+/* ---------- vidro ---------- */
+.panel{background:var(--glass);border:1px solid var(--glass-edge);border-radius:var(--r-panel);backdrop-filter:blur(22px) saturate(1.15);-webkit-backdrop-filter:blur(22px) saturate(1.15);box-shadow:var(--shadow);min-width:0}
+.card{background:var(--glass-3);border:1px solid var(--line-2);border-radius:16px;padding:14px 16px;min-width:0}
+.card-h{font-family:var(--f-mono);font-size:11.5px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px}
+
+/* ---------- topo ---------- */
+.hero{display:grid;gap:30px;align-items:start;margin-bottom:36px;scroll-margin-top:24px}
+@media (min-width:1080px){.hero{grid-template-columns:minmax(0,1.18fr) minmax(340px,.82fr);gap:44px}}
+.brand{display:flex;align-items:center;gap:14px;margin-bottom:34px}
+.brand svg{width:52px;height:52px;flex:none}
+.bm-bg{fill:var(--black)}
+.bm-up,.bm-base{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.bm-up{stroke:var(--white);stroke-width:7}
+.bm-base{stroke:var(--blue);stroke-width:5}
+.brand-n{font-weight:800;font-size:21px;letter-spacing:-.025em;line-height:1}
+.brand-n sup{font-family:var(--f-mono);font-size:10.5px;font-weight:600;letter-spacing:.06em;color:var(--blue);margin-left:2px}
+.brand-s{font-size:13px;color:var(--ink-2);margin-top:5px}
+h1{font-size:clamp(46px,7.2vw,94px);font-weight:800;letter-spacing:-.048em;line-height:.95;margin:0 0 26px;text-wrap:balance}
+h1 .pr{font-family:var(--f-mono);font-weight:600;font-size:.79em;letter-spacing:-.05em;color:var(--blue);background:var(--blue-bg);border-radius:.16em;padding:0 .1em;white-space:nowrap}
+.lead{font-size:clamp(16px,1.45vw,19px);line-height:1.6;color:var(--ink-2);max-width:57ch;margin:0 0 28px}
+.lead b{color:var(--ink);font-weight:700}
+.ctas{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:46px;padding:0 20px;border-radius:999px;font:inherit;font-weight:700;font-size:14px;text-decoration:none;color:var(--ink);background:var(--glass-2);border:1px solid var(--glass-edge);cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--white)}
+.btn.dark{background:var(--black);color:var(--white);border-color:var(--black)}
+.btn.dark:hover{background:var(--black-2)}
+.status{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-3);margin:24px 0 0}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 4px var(--good-bg);flex:none}
+
+/* registro de entregas */
+.log{padding:22px 22px 16px}
+.log-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.log-h h2{font-size:15.5px;font-weight:700;margin:0;letter-spacing:-.01em}
+.log-h span{font-size:12px;color:var(--ink-3)}
+.log ol{list-style:none;margin:0;padding:0}
+.log li{display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.log li:first-child{border-top:0}
+.lg-d{font-family:var(--f-mono);font-size:12px;color:var(--ink-3);padding-top:2px}
+.lg-m{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px}
+.lg-t{font-size:14px;line-height:1.42;color:var(--ink)}
+.sha{font-family:var(--f-mono);font-size:11.5px;color:var(--ink-3)}
+.log-f{font-size:12.5px;color:var(--ink-2);border-top:1px solid var(--line-2);margin:4px 0 0;padding-top:12px;line-height:1.5}
+.log-f b{color:var(--ink)}
+.chip-p{font-size:10.5px;font-weight:800;letter-spacing:.02em;border-radius:999px;padding:2px 8px;line-height:1.5;white-space:nowrap}
+.p-l{background:var(--teal);color:var(--white)}
+.p-f{background:var(--blue);color:var(--white)}
+.p-m{background:var(--yellow);color:var(--ink)}
+
+/* números do topo */
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin:0 0 88px}
+.kpi{padding:6px 16px 6px 20px;border-left:1px solid var(--line-2);min-width:0}
+.kpi:first-child{border-left:0;padding-left:0}
+.kpi-n{font-size:clamp(30px,3vw,42px);font-weight:700;letter-spacing:-.04em;line-height:1.02}
+.kpi-c{font-size:13px;color:var(--ink-2);line-height:1.4;margin-top:6px}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:22px}.kpi:nth-child(4){border-left:0;padding-left:0}}
+@media (max-width:560px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi:nth-child(odd){border-left:0;padding-left:0}.kpi:nth-child(even){border-left:1px solid var(--line-2);padding-left:16px}}
+
+/* dicas */
+.term{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;line-height:inherit;cursor:help;text-decoration:underline dotted;text-decoration-thickness:1.5px;text-underline-offset:3px;text-align:left}
+.term:hover{color:var(--ink)}
+.t-black .term:hover,.close .term:hover{color:var(--white)}
+.info{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1px solid var(--line-2);background:var(--glass-2);font:inherit;font-size:10.5px;font-weight:800;color:var(--ink-2);cursor:help;vertical-align:1px;margin-left:4px;padding:0}
+.info:hover{background:var(--white);color:var(--ink)}
+#dica{position:fixed;z-index:60;left:12px;top:12px;width:max-content;max-width:min(320px,calc(100vw - 24px));background:var(--black);color:var(--white);border-radius:14px;padding:12px 14px;font-size:13px;line-height:1.5;box-shadow:var(--shadow-pop)}
+#dica b{display:block;font-size:13.5px;margin-bottom:3px}
+#dica span{color:var(--on-dark-2)}
+
+/* ---------- seções ---------- */
+.sec{margin-bottom:96px;scroll-margin-top:24px}
+.sec-h{display:grid;gap:12px;margin-bottom:30px;max-width:820px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;font-weight:500;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);margin:0}
+h2{font-size:clamp(28px,3.4vw,44px);font-weight:800;letter-spacing:-.04em;line-height:1.04;margin:0;text-wrap:balance}
+.sec-s{font-size:16.5px;line-height:1.6;color:var(--ink-2);margin:0;max-width:64ch}
+
+/* método */
+.tiles{display:grid;gap:14px;grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:1000px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:620px){.tiles{grid-template-columns:1fr}}
+.tile{border-radius:var(--r-tile);padding:22px 22px 20px;display:flex;flex-direction:column;gap:10px;min-width:0;border:1px solid transparent}
+.t-black{background:var(--black);color:var(--white)}
+.t-glass{background:var(--glass-2);border-color:var(--glass-edge)}
+.tile-k{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:0}
+.t-black .tile-k{color:var(--yellow)}
+.tile h3{font-size:19.5px;font-weight:800;letter-spacing:-.025em;line-height:1.22;margin:0;text-wrap:balance}
+.tile p{margin:0;font-size:14.5px;line-height:1.55;color:var(--ink-2)}
+.t-black p{color:var(--on-dark-2)}
+.ev{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:8px}
+.evc{font-size:11.5px;font-weight:700;border-radius:999px;padding:4px 10px;background:var(--wash);color:var(--ink-2)}
+.t-black .evc{background:var(--on-dark-wash);color:var(--white)}
+.flowp{margin-top:14px;padding:22px 24px 20px}
+.flowp-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px 16px;flex-wrap:wrap;margin-bottom:16px}
+.flowp-h h3{font-size:17px;font-weight:800;letter-spacing:-.02em;margin:0}
+.flowp-h p{font-size:13px;color:var(--ink-3);margin:0}
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(8,minmax(0,1fr))}
+.step{padding:4px 14px;border-left:1px solid var(--line-2);min-width:0;display:flex;flex-direction:column;gap:4px}
+.step:first-child{border-left:0;padding-left:0}
+.step-n{font-family:var(--f-mono);font-size:12px;font-weight:600;color:var(--blue)}
+.step-t{font-weight:800;font-size:14.5px;letter-spacing:-.01em;line-height:1.25}
+.step-d{font-size:12.5px;color:var(--ink-3);line-height:1.45}
+@media (max-width:1100px){.steps{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:20px}.step:nth-child(5){border-left:0;padding-left:0}}
+@media (max-width:560px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}.step:nth-child(odd){border-left:0;padding-left:0}.step:nth-child(even){border-left:1px solid var(--line-2);padding-left:14px}}
+.flowp-n{display:flex;gap:10px;align-items:flex-start;margin:18px 0 0;padding-top:16px;border-top:1px solid var(--line);font-size:14px;line-height:1.55;color:var(--ink-2)}
+.flowp-n b{color:var(--ink)}
+
+/* ---------- produtos ---------- */
+.prod{padding:32px 32px 12px;margin-bottom:22px;scroll-margin-top:24px}
+@media (max-width:700px){.prod{padding:22px 18px 8px}}
+.prod-h{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:520px){.prod-h{grid-template-columns:1fr;gap:14px}}
+.pmark{width:64px;height:64px;border-radius:20px;display:grid;place-items:center;font-weight:800;font-size:23px;letter-spacing:-.04em}
+.pmark svg{width:64px;height:64px}
+.pm-l{background:var(--teal);color:var(--white)}
+.pm-f{background:var(--black)}
+.pm-m{background:var(--yellow);color:var(--ink)}
+.prod h3{font-size:clamp(28px,2.8vw,38px);font-weight:800;letter-spacing:-.04em;margin:0;line-height:1.05}
+.prod-tag{font-size:18px;font-weight:700;letter-spacing:-.015em;line-height:1.35;margin:8px 0 0}
+.prod-ctx{font-size:15px;color:var(--ink-2);margin:8px 0 0;max-width:74ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.pill{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;padding:6px 12px;border-radius:999px;background:var(--glass-2);border:1px solid var(--glass-edge);color:var(--ink-2);text-decoration:none;line-height:1.3}
+a.pill:hover{background:var(--white);color:var(--ink)}
+.pill .dot{width:7px;height:7px;box-shadow:0 0 0 3px var(--good-bg)}
+.stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin:28px 0 0;border-top:1px solid var(--line-2);border-bottom:1px solid var(--line-2)}
+.st{padding:16px 14px 15px 16px;border-left:1px solid var(--line);min-width:0}
+.st:first-child{border-left:0;padding-left:0}
+.st-n{font-size:30px;font-weight:700;letter-spacing:-.035em;line-height:1.05}
+.st-c{font-size:12.5px;color:var(--ink-3);line-height:1.4;margin-top:5px}
+@media (max-width:1000px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}.st:nth-child(4){border-left:0;padding-left:0}.st:nth-child(n+4){border-top:1px solid var(--line)}}
+@media (max-width:520px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.st:nth-child(odd){border-left:0;padding-left:0}.st:nth-child(even){border-left:1px solid var(--line);padding-left:14px}.st:nth-child(n+3){border-top:1px solid var(--line)}}
+.agents{display:flex;flex-wrap:wrap;gap:8px 22px;margin:18px 0 0;font-size:13.5px;color:var(--ink-2)}
+.ag{display:inline-flex;align-items:baseline;gap:8px;min-width:0}
+.ag i{width:10px;height:10px;border-radius:50%;flex:none;align-self:center}
+.ag b{color:var(--ink)}
+.c-as{background:var(--assessor)} .c-co{background:var(--copiloto)} .c-ba{background:var(--base)}
+
+/* diagramas */
+.viz{margin:30px 0 4px}
+.viz.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
+@media (max-width:960px){.viz.two{grid-template-columns:1fr}}
+.viz-col{min-width:0;display:flex;flex-direction:column}
+.viz-h{display:flex;justify-content:space-between;align-items:baseline;gap:6px 14px;flex-wrap:wrap;margin-bottom:14px}
+.viz-h h4{margin:0;font-size:15.5px;font-weight:800;letter-spacing:-.015em}
+.viz-h span{font-size:12.5px;color:var(--ink-3)}
+.lane{display:grid;grid-template-columns:92px minmax(0,1fr);gap:14px;align-items:center;margin-top:12px}
+.lane-l{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase}
+.flow-w{min-width:0}
+.flow{display:flex;align-items:stretch;gap:26px}
+.node{position:relative;flex:1 1 0;min-width:0;background:var(--glass-3);border:1px solid var(--line-2);border-radius:var(--r-node);padding:10px 12px}
+.node b{display:block;font-size:13.5px;font-weight:800;letter-spacing:-.01em;line-height:1.3}
+.node i{display:block;font-style:normal;font-family:var(--f-mono);font-size:11px;color:var(--ink-3);margin-top:3px;line-height:1.4}
+.flow>.node:not(:last-child)::after{content:"→";position:absolute;right:-20px;top:50%;transform:translateY(-50%);font-family:var(--f-mono);font-size:15px;color:var(--ink-3)}
+.node.hl{background:var(--black);color:var(--white);border-color:var(--black)}
+.node.hl i{color:var(--on-dark-2)}
+.node.ai{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
+.node.ai b::before{content:"IA ";font-family:var(--f-mono);font-size:10px;font-weight:600;color:var(--blue);letter-spacing:.04em}
+@media (max-width:1060px){
+  .lane{grid-template-columns:1fr;gap:6px}
+  .flow-w{overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+  .flow{width:max-content}
+  .node{flex:0 0 156px}
+}
+.viz-n{font-size:13.5px;color:var(--ink-2);margin:16px 0 0;line-height:1.55;max-width:80ch}
+.viz-n b{color:var(--ink)}
+
+/* registrar em uma linha */
+.reg{display:flex;flex-direction:column;gap:12px;flex:1}
+.reg-top{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800}
+.kbd{font-family:var(--f-mono);font-size:11px;font-weight:600;border:1px solid var(--line-2);border-bottom-width:2px;border-radius:6px;padding:0 6px;background:var(--white)}
+.reg-hint{font-weight:600;color:var(--ink-3);margin-left:auto;font-size:12px}
+.reg-in{min-height:76px;background:var(--white);border:1.5px solid var(--blue);border-radius:12px;padding:12px 14px;font-size:15.5px;line-height:1.45;box-shadow:0 0 0 4px var(--blue-bg)}
+.caret{display:inline-block;width:2px;height:1.1em;background:var(--blue);vertical-align:-3px;margin-left:1px;animation:pisca 1s steps(1) infinite}
+@keyframes pisca{50%{opacity:0}}
+.reg-out{display:flex;flex-wrap:wrap;gap:6px;min-height:31px}
+.rc{font-size:12.5px;font-weight:700;padding:5px 11px;border-radius:999px;background:var(--glass-2);border:1px solid var(--line-2);color:var(--ink-2)}
+.rc.k{background:var(--black);color:var(--white);border-color:var(--black)}
+.rc.new{animation:entra .24s ease both}
+@keyframes entra{from{opacity:0;transform:translateY(5px) scale(.96)}to{opacity:1;transform:none}}
+.rl-h{font-family:var(--f-mono);font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:4px 0 0}
+.reg-log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.reg-log li{display:grid;grid-template-columns:78px minmax(0,1fr);gap:10px;align-items:baseline;font-size:13px;color:var(--ink-2);padding:7px 0;border-top:1px solid var(--line)}
+.reg-log li:first-child{border-top:0}
+.reg-log li.new{animation:entra .3s ease both}
+.rl-k{font-family:var(--f-mono);font-size:10.5px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.05em}
+.rl-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.reg-meta{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--ink-3);margin-top:auto;padding-top:10px;border-top:1px solid var(--line-2)}
+
+/* quem vê o quê */
+.nest{display:flex;flex-direction:column;gap:12px;flex:1}
+.nb{border:1px solid var(--line-2);border-radius:16px;padding:10px 12px 12px;background:var(--glass-2)}
+.nb .nb{margin-top:10px;background:var(--glass-3)}
+.nb-h{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline}
+.nb-h b{font-size:13.5px;font-weight:800}
+.nb-h i{font-style:normal;font-size:12px;color:var(--ink-3)}
+.nb.doc{background:var(--black);border-color:var(--black)}
+.nb.doc b{color:var(--white)}
+.nb.doc i{color:var(--on-dark-2)}
+.gate{display:flex;gap:12px;align-items:flex-start;background:var(--blue);color:var(--white);border-radius:16px;padding:12px 14px}
+.gate b{display:block;font-size:13.5px}
+.gate span{display:block;font-size:12.5px;color:var(--on-dark-2);line-height:1.45;margin-top:2px}
+
+/* anel do macros */
+.mviz{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:24px;align-items:center}
+@media (max-width:960px){.mviz{grid-template-columns:1fr}}
+.ringc{display:flex;gap:16px;align-items:center}
+.ring{width:96px;height:96px;flex:none}
+.ring-bg{fill:none;stroke:var(--line-2);stroke-width:12}
+.ring-fg{fill:none;stroke:var(--ink);stroke-width:12;stroke-linecap:round}
+.ring-t{font-size:12.5px;color:var(--ink-2);line-height:1.5}
+.ring-t b{display:block;font-size:20px;color:var(--ink);letter-spacing:-.02em}
+
+/* explorar */
+.ex-list{margin:28px 0 12px;border-top:1px solid var(--line-2)}
+.ex-cap{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:22px 0 0}
+.ex{border-bottom:1px solid var(--line)}
+.ex>summary{list-style:none;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;padding:17px 2px;cursor:pointer;border-radius:12px}
+.ex>summary::-webkit-details-marker{display:none}
+.ex-t{display:block;font-size:17px;font-weight:800;letter-spacing:-.02em;line-height:1.3}
+.ex-t em{font-style:normal;color:var(--ink-3);font-weight:700}
+.ex-s{display:block;font-size:14px;color:var(--ink-2);margin-top:3px;line-height:1.45}
+.ex-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.tg{font-family:var(--f-mono);font-size:11px;padding:2px 8px;border-radius:6px;background:var(--wash);color:var(--ink-2);white-space:nowrap}
+.pl{width:40px;height:40px;border-radius:50%;border:1px solid var(--line-2);background:var(--glass-2);display:grid;place-items:center;transition:transform .2s,background .15s,color .15s;color:var(--ink)}
+.ex>summary:hover .pl{background:var(--white)}
+.ex[open]>summary .pl{transform:rotate(45deg);background:var(--black);color:var(--white);border-color:var(--black)}
+.ex-b{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);gap:30px;padding:2px 2px 28px}
+.ex[open] .ex-b{animation:abre .25s ease}
+@keyframes abre{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@media (max-width:900px){.ex-b{grid-template-columns:1fr;gap:18px}}
+.ex-b h5{font-family:var(--f-mono);font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin:0 0 6px}
+.ex-b p{margin:0 0 16px;font-size:14.5px;line-height:1.62;color:var(--ink-2);max-width:68ch}
+.ex-b p:last-child{margin-bottom:0}
+.ex-b p strong{color:var(--ink);font-weight:700}
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.go-row{display:flex;flex-wrap:wrap;gap:8px}
+.go{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:13.5px;color:var(--white);background:var(--black);border-radius:999px;padding:10px 14px 10px 16px;text-decoration:none;line-height:1.2}
+.go:hover{background:var(--black-2)}
+.go small{display:inline-flex;align-items:center;gap:4px;font-weight:600;font-size:11px;color:var(--on-dark-2)}
+.go.lt{background:var(--glass-2);color:var(--ink);border:1px solid var(--line-2)}
+.go.lt:hover{background:var(--white)}
+.go.lt small{color:var(--ink-3)}
+.spec{list-style:none;margin:0;padding:0}
+.spec li{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px;line-height:1.45;color:var(--ink-2)}
+.spec li:first-child{border-top:0;padding-top:0}
+.spec .kv{font-weight:800;color:var(--ink);font-size:14.5px;letter-spacing:-.01em}
+.spec.wide li{grid-template-columns:118px minmax(0,1fr)}
+.pipe{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pipe span{font-family:var(--f-mono);font-size:11.5px;padding:4px 9px;border-radius:8px;background:var(--white);border:1px solid var(--line-2)}
+.pipe span.ok{background:var(--good-bg);border-color:transparent;color:var(--good);font-weight:600}
+.pipe em{font-style:normal;color:var(--ink-3);font-family:var(--f-mono);font-size:12px}
+.ix{display:grid;gap:5px}
+.ix-r,.ix-x{display:grid;grid-template-columns:72px repeat(8,minmax(0,1fr));gap:4px;align-items:center}
+.ix-r span{font-size:12px;color:var(--ink-2);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ix-r i{height:18px;border-radius:5px;background:var(--white);border:1px solid var(--line-2)}
+.ix-r i.b{background:var(--ink-3);border-color:var(--ink-3)}
+.ix-r.res i{background:transparent;border-style:dashed}
+.ix-r.res i.f{background:var(--good);border-color:var(--good);border-style:solid}
+.ix-x em{font-style:normal;text-align:center;font-family:var(--f-mono);font-size:10.5px;color:var(--ink-3)}
+.ix-n{font-size:12.5px;color:var(--ink-2);margin:8px 0 0}
+.ix-n b{color:var(--good)}
+.regua{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.regua span{text-align:center;font-size:11.5px;font-weight:700;padding:8px 4px;border-radius:8px;background:var(--white);border:1px solid var(--line-2);line-height:1.3}
+.regua span b{display:block;font-size:15px}
+.layers{display:flex;flex-direction:column;gap:6px}
+.ly{border-radius:12px;padding:8px 12px;background:var(--white);border:1px solid var(--line-2)}
+.ly b{font-size:13px;display:block}
+.ly i{font-style:normal;font-size:12px;color:var(--ink-3)}
+.ly:nth-child(1){margin-inline:30px}.ly:nth-child(2){margin-inline:20px}.ly:nth-child(3){margin-inline:10px}
+.ly.base{background:var(--black);border-color:var(--black)}
+.ly.base b{color:var(--white)} .ly.base i{color:var(--on-dark-2)}
+.tt{width:100%;border-collapse:collapse;font-size:13px}
+.tt th{text-align:left;font-family:var(--f-mono);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);padding:0 0 6px}
+.tt th:last-child,.tt td:last-child{text-align:right}
+.tt td{padding:7px 0;border-top:1px solid var(--line);color:var(--ink-2);line-height:1.4;vertical-align:top}
+.tt td:last-child{font-weight:800;font-size:15px;padding-left:10px}
+.tt .ok{color:var(--good)} .tt .no{color:var(--crit)}
+.bars{display:flex;flex-direction:column;gap:12px}
+.bar-l{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--ink-2);margin-bottom:5px}
+.bar-l b{color:var(--ink)}
+.bar-t{height:12px;border-radius:999px;background:var(--wash);overflow:hidden}
+.bar-f{height:100%;border-radius:999px;background:var(--crit)}
+.bar-f.g{background:var(--good);min-width:4px}
+.mini{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.mini li{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--ink-2);padding:6px 0;border-top:1px solid var(--line)}
+.mini li:first-child{border-top:0;padding-top:0}
+.mini b{color:var(--ink)}
+.mini em{font-style:normal;font-family:var(--f-mono);font-size:11.5px;color:var(--ink-3);white-space:nowrap}
+.tier{font-family:var(--f-mono);font-size:10.5px;font-weight:600;border-radius:6px;padding:1px 6px;margin-right:6px}
+.tier.s{background:var(--blue-bg);color:var(--blue)} .tier.p{background:var(--wash);color:var(--ink-2)} .tier.f{background:var(--black);color:var(--white)}
+
+/* ferramentas */
+.tools{padding:6px 26px 18px}
+@media (max-width:700px){.tools{padding:4px 18px 14px}}
+.tools-top{display:flex;justify-content:space-between;align-items:center;gap:12px 20px;flex-wrap:wrap;padding:18px 0 4px}
+.seg{display:inline-flex;background:var(--wash);border-radius:999px;padding:4px;gap:2px;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.seg button{border:0;background:transparent;padding:8px 15px;border-radius:999px;font:inherit;font-size:13.5px;font-weight:700;color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--white);color:var(--ink);box-shadow:var(--shadow)}
+.legend{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-3);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.tgrp{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);padding:24px 0 9px;border-bottom:1px solid var(--line-2)}
+.trow{display:grid;grid-template-columns:minmax(170px,230px) minmax(0,1fr) 88px;gap:18px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.tn{font-weight:800;font-size:14.5px;letter-spacing:-.01em;min-width:0}
+.tu{font-size:14px;color:var(--ink-2);line-height:1.5;min-width:0}
+.tp{display:flex;gap:5px;justify-content:flex-end}
+.pd{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:800;border:1.5px solid var(--line-2);color:transparent;flex:none}
+.pd.on.l{background:var(--teal);border-color:var(--teal);color:var(--white)}
+.pd.on.f{background:var(--blue);border-color:var(--blue);color:var(--white)}
+.pd.on.m{background:var(--yellow);border-color:var(--yellow);color:var(--ink)}
+@media (max-width:760px){.trow{grid-template-columns:minmax(0,1fr) auto;gap:4px 12px}.tu{grid-column:1 / -1;grid-row:2}}
+
+/* gaps */
+.gaps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:1000px){.gaps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:620px){.gaps{grid-template-columns:1fr}}
+.gap{padding:20px 20px 18px;display:flex;flex-direction:column;gap:12px}
+.gap-h{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.gap h3{font-size:16.5px;font-weight:800;margin:0;letter-spacing:-.02em;line-height:1.25}
+.ba{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px 10px;font-size:14px;line-height:1.45;color:var(--ink-2)}
+.ba dt{font-family:var(--f-mono);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;padding-top:3px}
+.ba dt.b{color:var(--crit)} .ba dt.a{color:var(--good)}
+.ba dd{margin:0}
+.ba dd.a{color:var(--ink);font-weight:700}
+.gap-w{font-size:12.5px;color:var(--ink-3);margin:auto 0 0;padding-top:10px;border-top:1px solid var(--line);line-height:1.45}
+
+/* linha do tempo */
+.tlp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 44px;padding:28px 30px 14px}
+@media (max-width:860px){.tlp{grid-template-columns:1fr;padding:22px 18px 8px}}
+.tl{list-style:none;margin:0;padding:0}
+.tl li{display:grid;grid-template-columns:50px 14px minmax(0,1fr);gap:0 12px;position:relative;padding-bottom:20px}
+.tl li::before{content:"";position:absolute;left:68px;top:18px;bottom:-2px;width:2px;background:var(--line-2)}
+.tl li:last-child::before{display:none}
+@media (max-width:860px){.tl:first-child li:last-child::before{display:block}}
+.tl-d{font-family:var(--f-mono);font-size:12.5px;font-weight:600;padding-top:1px;text-align:right}
+.tl-dot{width:14px;height:14px;border-radius:50%;margin-top:3px;border:3px solid var(--white);box-shadow:0 0 0 1px var(--line-2)}
+.tl-dot.l{background:var(--teal)} .tl-dot.f{background:var(--blue)} .tl-dot.m{background:var(--yellow)}
+.tl-t{font-size:14.5px;line-height:1.5;color:var(--ink-2)}
+.tl-t b{color:var(--ink)}
+
+/* fecho */
+.close{background:var(--black);color:var(--white);border-radius:var(--r-panel);padding:44px 44px 40px;display:flex;flex-direction:column;gap:34px;scroll-margin-top:24px}
+@media (max-width:700px){.close{padding:28px 20px 26px}}
+.close .eyebrow{color:var(--yellow)}
+.close .sec-s{color:var(--on-dark-2)}
+.cgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.ci{padding:2px 22px;border-left:1px solid var(--on-dark-line);min-width:0}
+.ci:first-child{border-left:0;padding-left:0}
+.ci h3{font-size:16.5px;font-weight:800;letter-spacing:-.015em;margin:0 0 8px}
+.ci p{margin:0;font-size:14px;line-height:1.58;color:var(--on-dark-2)}
+@media (max-width:1000px){.cgrid{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:26px}.ci:nth-child(3){border-left:0;padding-left:0}}
+@media (max-width:560px){.cgrid{grid-template-columns:1fr}.ci{border-left:0;padding-left:0}}
+.contact{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding-top:26px;border-top:1px solid var(--on-dark-line)}
+.mailbox{display:inline-flex;align-items:center;gap:12px;background:var(--white);color:var(--ink);border-radius:999px;padding:6px 6px 6px 20px;font-weight:800;font-size:15.5px;max-width:100%}
+.mailbox #email{user-select:all;overflow-wrap:anywhere}
+.copy{border:0;background:var(--black);color:var(--white);border-radius:999px;min-height:38px;padding:0 15px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;gap:6px;align-items:center;flex:none}
+.copy:hover{background:var(--black-2)}
+.btn.on-dark{background:transparent;color:var(--white);border-color:var(--on-dark-line)}
+.btn.on-dark:hover{background:var(--on-dark-wash)}
+.foot{font-size:12.5px;color:var(--ink-3);line-height:1.6;margin:30px 0 0;max-width:86ch}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.8 5.41a2 2 0 0 1-1.27 1.27L7.76 16.24l1.8-5.41a2 2 0 0 1 1.27-1.27z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-peak" viewBox="0 0 24 24"><path d="M5 14.5 12 6.5l7 8"/><path d="M5 19h14"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></symbol>
+  <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></symbol>
+</svg>
+
+<nav class="rail" aria-label="Seções da página">
+  <a class="rb on" href="#inicio" data-tip="Início" aria-label="Início"><svg class="ico"><use href="#i-grid"/></svg></a>
+  <a class="rb" href="#metodo" data-tip="Como eu trabalho" aria-label="Como eu trabalho"><svg class="ico"><use href="#i-compass"/></svg></a>
+  <span class="rsep" aria-hidden="true"></span>
+  <a class="rb" href="#lynxs" data-tip="Lynxs" aria-label="Lynxs"><svg class="ico"><use href="#i-users"/></svg></a>
+  <a class="rb" href="#force" data-tip="Xpannd FORCE" aria-label="Xpannd FORCE"><svg class="ico"><use href="#i-peak"/></svg></a>
+  <a class="rb" href="#macros" data-tip="Macros" aria-label="Macros"><svg class="ico"><use href="#i-flame"/></svg></a>
+  <span class="rsep" aria-hidden="true"></span>
+  <a class="rb" href="#ferramentas" data-tip="Ferramentas" aria-label="Ferramentas"><svg class="ico"><use href="#i-layers"/></svg></a>
+  <a class="rb dk" href="#gaps" data-tip="Gaps que fechei" aria-label="Gaps que fechei"><svg class="ico"><use href="#i-wrench"/></svg></a>
+  <a class="rb dk" href="#linha" data-tip="Linha do tempo" aria-label="Linha do tempo"><svg class="ico"><use href="#i-clock"/></svg></a>
+  <a class="rb" href="#contato" data-tip="Contato" aria-label="Contato"><svg class="ico"><use href="#i-mail"/></svg></a>
+</nav>
+
+<main class="shell">
+
+<header class="hero" id="inicio">
+  <div class="hero-main">
+    <div class="brand">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect class="bm-bg" width="64" height="64" rx="14"/><path class="bm-up" d="M17 36 L32 19 L47 36"/><path class="bm-base" d="M16 45 H48"/></svg>
+      <div><div class="brand-n">Xpannd<sup>AI</sup></div><div class="brand-s">Portfólio de Michel André Caldeira</div></div>
+    </div>
+    <h1>Do P&amp;L ao <span class="pr">pull&nbsp;request.</span></h1>
+    <p class="lead">Executivo comercial B2B, com P&amp;L de até US$ 80 milhões e operação em 29 países. Em 8 semanas, coloquei <b>três plataformas de IA em produção</b> dirigindo agentes de código como time de engenharia, com as regras de um time de verdade: banco protegido, <b>1.420 testes automáticos</b> e login com dois fatores.</p>
+    <div class="ctas">
+      <a class="btn dark" href="#produtos">Ver os três produtos <svg class="ico s"><use href="#i-down"/></svg></a>
+      <a class="btn" href="#metodo">Como eu trabalho</a>
+    </div>
+    <p class="status"><span class="dot" aria-hidden="true"></span>Os três estão no ar. Números conferidos nos repositórios em 07/10/2026.</p>
+  </div>
+
+  <aside class="panel log" aria-labelledby="log-h">
+    <div class="log-h"><h2 id="log-h">Registro de entregas</h2><span>commits e PRs reais, em produção</span></div>
+    <ol>
+      <li><span class="lg-d">06/10</span><div><div class="lg-m"><span class="chip-p p-f">FORCE</span><span class="sha">9a78b33</span></div><div class="lg-t">Vista Números na Inteligência: o mercado do país por linha de produto</div></div></li>
+      <li><span class="lg-d">02/10</span><div><div class="lg-m"><span class="chip-p p-f">FORCE</span><span class="sha">15654a1</span></div><div class="lg-t">Dois fatores: código do aplicativo autenticador e exigência por empresa</div></div></li>
+      <li><span class="lg-d">02/10</span><div><div class="lg-m"><span class="chip-p p-f">FORCE</span><span class="sha">be3c038</span></div><div class="lg-t">Leitura calculada uma vez por consulta: a mesma regra, de 0,7 s para 2 ms</div></div></li>
+      <li><span class="lg-d">02/10</span><div><div class="lg-m"><span class="chip-p p-f">FORCE</span><span class="sha">80382ae</span></div><div class="lg-t">Projeto canônico: o código não conhece nenhum cliente</div></div></li>
+      <li><span class="lg-d">25/09</span><div><div class="lg-m"><span class="chip-p p-m">Macros</span><span class="sha">e8b20fd</span></div><div class="lg-t">v6.1.0: registro direto, veredito claro, favoritas em botões, treino rápido</div></div></li>
+      <li><span class="lg-d">21/09</span><div><div class="lg-m"><span class="chip-p p-l">Lynxs</span><span class="sha">PR #145</span></div><div class="lg-t">Agente responde numa chamada só, sem raciocínio, e age ao liberar</div></div></li>
+      <li><span class="lg-d">14/09</span><div><div class="lg-m"><span class="chip-p p-l">Lynxs</span><span class="sha">PR #141</span></div><div class="lg-t">O servidor transcreve e junta a gravação protegida sozinho</div></div></li>
+      <li><span class="lg-d">11/09</span><div><div class="lg-m"><span class="chip-p p-l">Lynxs</span><span class="sha">PR #133</span></div><div class="lg-t">TURN da Cloudflare com credencial por sala</div></div></li>
+    </ol>
+    <p class="log-f"><b>196 entregas em 8 semanas:</b> 127 PRs no Lynxs, 33 commits no FORCE e 36 no Macros.</p>
+  </aside>
+</header>
+
+<section class="kpis" aria-label="Números do portfólio">
+  <div class="kpi"><div class="kpi-n">3</div><div class="kpi-c">plataformas no ar <button type="button" class="info" data-d="k-plat" aria-label="Quais são">i</button></div></div>
+  <div class="kpi"><div class="kpi-n">121 mil</div><div class="kpi-c">linhas de código <button type="button" class="info" data-d="k-linhas" aria-label="Como contei">i</button></div></div>
+  <div class="kpi"><div class="kpi-n">1.420</div><div class="kpi-c">testes automáticos, todos passando <button type="button" class="info" data-d="k-testes" aria-label="Como contei">i</button></div></div>
+  <div class="kpi"><div class="kpi-n">64</div><div class="kpi-c">funções no servidor <button type="button" class="info" data-d="k-func" aria-label="Como contei">i</button></div></div>
+  <div class="kpi"><div class="kpi-n">196</div><div class="kpi-c">entregas versionadas no Git <button type="button" class="info" data-d="k-entregas" aria-label="Como contei">i</button></div></div>
+  <div class="kpi"><div class="kpi-n">8</div><div class="kpi-c">semanas, de 10/08 a 06/10 <button type="button" class="info" data-d="k-semanas" aria-label="De quando a quando">i</button></div></div>
+</section>
+
+<section class="sec" id="metodo" aria-labelledby="metodo-h">
+  <div class="sec-h">
+    <p class="eyebrow">Como eu trabalho</p>
+    <h2 id="metodo-h">Agentes escrevem o código. Eu defino o problema, as regras e o que é pronto.</h2>
+    <p class="sec-s">O mesmo método nos três produtos, com <button type="button" class="term" data-d="claudecode">Claude Code</button> como time de engenharia. É ele que transforma IA em resultado de operação, e é ele que levo para uma empresa.</p>
+  </div>
+  <div class="tiles">
+    <article class="tile t-black">
+      <p class="tile-k">Governança</p>
+      <h3>A IA compõe e classifica. Quem decide é gente.</h3>
+      <p>Horário, roteamento e prazo são código previsível. Nota e recomendação da IA nunca aparecem na tela de decisão, e mensagem sensível só sai depois de um clique de aprovação.</p>
+      <div class="ev"><span class="evc">Lynxs › Avaliar</span><span class="evc">Lynxs › Central</span><span class="evc">FORCE › Caixa da IA</span></div>
+    </article>
+    <article class="tile t-glass">
+      <p class="tile-k">Desenho</p>
+      <h3>Benchmark e mockup antes do código</h3>
+      <p>Cada mudança grande começou comparando quem resolve melhor (Rocketlane, Calendly, Greenhouse, Linear) e virou mockup com as decisões em aberto. Código só depois do sim.</p>
+      <div class="ev"><span class="evc">20+ mockups aprovados</span><span class="evc">nota do FORCE no benchmark: 58 → 77</span></div>
+    </article>
+    <article class="tile t-glass">
+      <p class="tile-k">Qualidade</p>
+      <h3>Regra primeiro, com teste ao lado</h3>
+      <p>Toda regra nasce pura e testada; motor e tela só chamam a regra. A que vale no navegador e no servidor existe duas vezes, com o mesmo exemplo testado, para a divergência aparecer.</p>
+      <div class="ev"><span class="evc">1.420 testes</span><span class="evc"><button type="button" class="term" data-d="ci">CI</button> em todo PR</span></div>
+    </article>
+    <article class="tile t-glass">
+      <p class="tile-k">Canonicidade</p>
+      <h3>Uma origem para cada significado</h3>
+      <p>Um componente por conceito, uma fonte de verdade por dado. No FORCE, o código não conhece nenhum cliente: 294 menções ao primeiro viraram configuração.</p>
+      <div class="ev"><span class="evc">mapa do sistema no mesmo PR</span><span class="evc">um dicionário de dicas</span></div>
+    </article>
+    <article class="tile t-glass">
+      <p class="tile-k">Segurança</p>
+      <h3>Quem vê o quê mora no banco</h3>
+      <p>Regras de acesso no próprio Postgres (<button type="button" class="term" data-d="rls">RLS</button>), dois fatores exigidos dentro da consulta, links de uso único guardados como <button type="button" class="term" data-d="hash">hash</button> e chaves só no servidor.</p>
+      <div class="ev"><span class="evc">RLS</span><span class="evc"><button type="button" class="term" data-d="totp">TOTP</button></span><span class="evc">segredos no cofre</span></div>
+    </article>
+    <article class="tile t-glass">
+      <p class="tile-k">Honestidade</p>
+      <h3>A tela não promete o que o código não faz</h3>
+      <p>Trilha sem gatilho diz "ainda sem gatilho". Falha mostra o motivo real. Uma página de status confere cada função publicada, de verdade.</p>
+      <div class="ev"><span class="evc">Testes AI</span><span class="evc">status ao vivo</span></div>
+    </article>
+  </div>
+
+  <div class="panel flowp">
+    <div class="flowp-h"><h3>Como uma funcionalidade nasce</h3><p>sempre nesta ordem, do benchmark à medida</p></div>
+    <ol class="steps">
+      <li class="step"><span class="step-n">01</span><span class="step-t">Benchmark</span><span class="step-d">quem resolve isso melhor, e por quê</span></li>
+      <li class="step"><span class="step-n">02</span><span class="step-t">Mockup</span><span class="step-d">a tela antes do código, com as decisões em aberto</span></li>
+      <li class="step"><span class="step-n">03</span><span class="step-t">Decisão</span><span class="step-d">o dono decide; a decisão fica registrada</span></li>
+      <li class="step"><span class="step-n">04</span><span class="step-t">Regra e teste</span><span class="step-d">regra pura, com o teste ao lado</span></li>
+      <li class="step"><span class="step-n">05</span><span class="step-t">Motor e tela</span><span class="step-d">só chamam a regra</span></li>
+      <li class="step"><span class="step-n">06</span><span class="step-t">PR e CI</span><span class="step-d">lint, tipos, testes e build</span></li>
+      <li class="step"><span class="step-n">07</span><span class="step-t">Produção</span><span class="step-d">o merge publica; <button type="button" class="term" data-d="migracao">migração</button> com resultado esperado</span></li>
+      <li class="step"><span class="step-n">08</span><span class="step-t">Medida</span><span class="step-d">status, métrica por trilha, nota do benchmark</span></li>
+    </ol>
+    <p class="flowp-n"><svg class="ico" aria-hidden="true"><use href="#i-shield"/></svg><span><b>Quem faz o quê.</b> O agente de código lê o repositório, escreve, roda os testes e abre o PR. Eu defino o problema, escrevo as regras do projeto, reviso, decido e publico.</span></p>
+  </div>
+</section>
+
+<section class="sec" id="produtos" aria-labelledby="produtos-h">
+  <div class="sec-h">
+    <p class="eyebrow">Três produtos</p>
+    <h2 id="produtos-h">Três dores de operação, três plataformas no ar</h2>
+    <p class="sec-s">Números e diagrama à vista; cada linha abre como foi feito. Os botões pretos levam à tela de verdade, que pede login.</p>
+  </div>
+
+  <!-- ================= LYNXS ================= -->
+  <article class="panel prod" id="lynxs" aria-labelledby="lynxs-h">
+    <header class="prod-h">
+      <div class="pmark pm-l" aria-hidden="true">Ly</div>
+      <div>
+        <h3 id="lynxs-h">Lynxs</h3>
+        <p class="prod-tag">Recrutamento com três agentes de IA sobre os mesmos dados</p>
+        <p class="prod-ctx">SaaS B2B multiempresa para agências e consultorias de RH: vagas, candidatos, entrevista em vídeo, agenda e WhatsApp num lugar só.</p>
+        <div class="meta">
+          <a class="pill" href="https://app.lynxs.com.br/" target="_blank" rel="noopener"><span class="dot" aria-hidden="true"></span>app.lynxs.com.br</a>
+          <span class="pill">ago a out de 2026</span>
+          <span class="pill">Meu papel: produto, arquitetura e 127 dos 138 PRs</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="stats">
+      <div class="st"><div class="st-n">102 mil</div><div class="st-c">linhas de front, funções e SQL</div></div>
+      <div class="st"><div class="st-n">47</div><div class="st-c"><button type="button" class="term" data-d="edge">Edge Functions</button> em Deno</div></div>
+      <div class="st"><div class="st-n">79</div><div class="st-c">migrações de banco</div></div>
+      <div class="st"><div class="st-n">1.027</div><div class="st-c">testes: 749 Vitest e 278 Deno</div></div>
+      <div class="st"><div class="st-n">24</div><div class="st-c">trilhas do agente</div></div>
+      <div class="st"><div class="st-n">19</div><div class="st-c">PRs num só dia, com CI verde</div></div>
+    </div>
+
+    <div class="agents" aria-label="Os três agentes">
+      <span class="ag"><i class="c-as" aria-hidden="true"></i><span><b>Meu Assessor</b> contato, agenda e confirmação</span></span>
+      <span class="ag"><i class="c-co" aria-hidden="true"></i><span><b>Copiloto</b> roteiro, entrevista, parecer e DISC</span></span>
+      <span class="ag"><i class="c-ba" aria-hidden="true"></i><span><b>Base Ativa</b> acervo, consentimento e reengajamento</span></span>
+    </div>
+
+    <div class="viz">
+      <div class="viz-h"><h4>O motor do Meu Assessor</h4><span>o modelo compõe; portões, horário e envio são código</span></div>
+      <div class="lane"><span class="lane-l">Iniciativa</span>
+        <div class="flow-w"><div class="flow">
+          <div class="node"><b>Relógio</b><i>pg_cron: 1 e 5 min</i></div>
+          <div class="node"><b>Planejador</b><i>o que vence por tempo</i></div>
+          <div class="node"><b>Fila</b><i>ações com prazo e dedupe</i></div>
+          <div class="node hl"><b>Executor</b><i>3 portões, ritmo de 6 h</i></div>
+          <div class="node ai"><b>Modelo</b><i>compõe com a ficha pública</i></div>
+          <div class="node"><b>Canal</b><i>WhatsApp ou e-mail</i></div>
+        </div></div>
+      </div>
+      <div class="lane"><span class="lane-l">Resposta</span>
+        <div class="flow-w"><div class="flow">
+          <div class="node"><b>Candidato</b><i>responde no WhatsApp</i></div>
+          <div class="node"><b>Webhook</b><i>confere token, dedupe 2 min</i></div>
+          <div class="node hl"><b>Executor</b><i>acordado na hora</i></div>
+          <div class="node ai"><b>Uma chamada</b><i>{tipo, mensagem}</i></div>
+          <div class="node"><b>Guarda-corpo</b><i>horário só pelo link</i></div>
+          <div class="node"><b>Central</b><i>o que pede gente</i></div>
+        </div></div>
+      </div>
+      <p class="viz-n"><b>Com meu OK:</b> a mensagem espera até 24 h na Central, e um clique envia o que estiver na caixa, editada ou não. Cada trilha roda Sozinho ou Com meu OK, por empresa e por vaga.</p>
+    </div>
+
+    <div class="ex-list">
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Bancada <em>· entrevista em vídeo que não perde a gravação</em></span>
+          <span class="ex-tags"><span class="tg">WebRTC</span><span class="tg">Cloudflare TURN</span><span class="tg">Supabase Realtime</span><span class="tg">Storage</span><span class="tg">Whisper</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O problema</h5>
+            <p>Entrevista em vídeo cai, o navegador fecha, e com ele vai o áudio que viraria transcrição, parecer e DISC.</p>
+            <h5>O que construí</h5>
+            <p>Vídeo direto entre os dois navegadores (<button type="button" class="term" data-d="webrtc">WebRTC</button>), com servidor de passagem da Cloudflare (<button type="button" class="term" data-d="turn">TURN</button>) e credencial própria por sala. A sinalização tem dois caminhos, PeerJS e <button type="button" class="term" data-d="realtime">Supabase Realtime</button>, com troca automática sem recarregar a página. Cada lado sobe pedaços de 3 s de áudio para um cofre privado, e cada bloco de 5 min vira MP3. Se a sala morre, um relógio no servidor transcreve os blocos, junta tudo e avisa a Central.</p>
+            <h5>O diferencial</h5>
+            <p>A transcrição da rodada é uma só, feita de sessões com origem: Bancada, gravação enviada, transcrição colada, parecer externo ou gravação recuperada. <strong>Parecer e DISC leem o conjunto e citam a fala do candidato como evidência.</strong> A sinalização é uma máquina de estados pura, com 23 testes.</p>
+          </div>
+          <div class="side">
+            <div class="card">
+              <p class="card-h">Anatomia da gravação protegida</p>
+              <ul class="spec">
+                <li><span class="kv">3 s</span><span>pedaço de áudio de cada lado, por URL assinada</span></li>
+                <li><span class="kv">5 min</span><span>cada bloco fechado vira MP3 no navegador</span></li>
+                <li><span class="kv">15 min</span><span>sem sinal, a sala é dada como encerrada</span></li>
+                <li><span class="kv">10 min</span><span>o relógio do servidor transcreve e junta</span></li>
+                <li><span class="kv">24 h</span><span>o áudio é apagado; fica a transcrição</span></li>
+              </ul>
+            </div>
+            <div class="go-row"><a class="go" href="https://app.lynxs.com.br/entrevistas" target="_blank" rel="noopener">Abrir as Salas <small><svg class="ico s"><use href="#i-lock"/></svg>login</small></a></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Meu Assessor <em>· 24 trilhas que conversam pelo WhatsApp</em></span>
+          <span class="ex-tags"><span class="tg">Edge Functions</span><span class="tg">pg_cron</span><span class="tg">Vault</span><span class="tg">Z-API</span><span class="tg">Resend</span><span class="tg">OpenRouter</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O problema</h5>
+            <p>Agência perde candidato bom por demora: ninguém apresenta a vaga, confirma, lembra ou dá retorno a tempo.</p>
+            <h5>O que construí</h5>
+            <p>Um catálogo de 24 trilhas, cada uma com objetivo, limites e cadência: apresentar a vaga, perguntas de entrada, agendar, confirmar, lembrar, tratar falta, dar retorno, encerrar e reengajar o acervo, além de oito internas que preparam o entrevistador e cobram o recrutador. Um relógio no banco (<button type="button" class="term" data-d="pgcron">pg_cron</button>, com segredos no <button type="button" class="term" data-d="vault">Vault</button>) acorda o planejador a cada 5 min e o executor a cada 1 min. Mensagem que chega pelo <button type="button" class="term" data-d="webhook">webhook</button> acorda o executor na hora.</p>
+            <h5>A governança</h5>
+            <p>Três portões, nesta ordem: trilha ligada na empresa, rodada automatizada e candidato liberado. <strong>O candidato nasce bloqueado, então ninguém é abordado por acidente.</strong> Ritmo de 6 h entre iniciativas e 5 por semana; resposta não gasta cota. O agente nunca marca horário por conversa: manda o link ou passa para o recrutador.</p>
+          </div>
+          <div class="side">
+            <div class="card">
+              <p class="card-h">Os três portões</p>
+              <ul class="spec">
+                <li><span class="kv">1</span><span>Trilha ligada na empresa (Central)</span></li>
+                <li><span class="kv">2</span><span>Rodada automatizada (editor de etapas)</span></li>
+                <li><span class="kv">3</span><span>Candidato liberado no Kanban; nasce fechado</span></li>
+              </ul>
+            </div>
+            <div class="go-row">
+              <a class="go" href="https://app.lynxs.com.br/agentes/central" target="_blank" rel="noopener">Central de Agentes <small><svg class="ico s"><use href="#i-lock"/></svg>login</small></a>
+              <a class="go lt" href="https://app.lynxs.com.br/agentes/configuracoes" target="_blank" rel="noopener">Trilhas <small><svg class="ico s"><use href="#i-lock"/></svg>login</small></a>
+              <a class="go lt" href="https://app.lynxs.com.br/conversas" target="_blank" rel="noopener">Conversas <small><svg class="ico s"><use href="#i-lock"/></svg>login</small></a>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Agenda por rodada <em>· o horário livre de todo mundo, sem troca de e-mail</em></span>
+          <span class="ex-tags"><span class="tg">iCalendar</span><span class="tg">Resend</span><span class="tg">link público</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O problema</h5>
+            <p>Marcar uma entrevista com três entrevistadores e um candidato custa dias de mensagem.</p>
+            <h5>O que construí</h5>
+            <p>Cada rodada tem pessoas obrigatórias. O sistema lê o iCal de cada uma e oferece só o horário livre em todas. O candidato escolhe pelo link, remarca ou desmarca sozinho até 24 h antes.</p>
+            <h5>O diferencial</h5>
+            <p>O convite sai por e-mail como <button type="button" class="term" data-d="ics">.ics</button> e entra na agenda de cada pessoa com Sim e Não. Remarcar sobe o número de versão do convite; desmarcar manda o cancelamento. <strong>Sem integração por pessoa e sem pedir acesso à conta Google de ninguém.</strong></p>
+          </div>
+          <div class="side">
+            <div class="card">
+              <p class="card-h">Interseção, exemplo de um dia</p>
+              <div class="ix" role="img" aria-label="Três agendas das 9h às 16h; o único horário livre para todos é 12h">
+                <div class="ix-r"><span>Ana</span><i class="b"></i><i class="b"></i><i></i><i></i><i></i><i class="b"></i><i></i><i></i></div>
+                <div class="ix-r"><span>Bruno</span><i></i><i></i><i class="b"></i><i></i><i></i><i></i><i class="b"></i><i></i></div>
+                <div class="ix-r"><span>Carla</span><i class="b"></i><i></i><i></i><i></i><i class="b"></i><i></i><i></i><i class="b"></i></div>
+                <div class="ix-r res"><span>Todos</span><i></i><i></i><i></i><i class="f"></i><i></i><i></i><i></i><i></i></div>
+                <div class="ix-x"><span></span><em>9</em><em>10</em><em>11</em><em>12</em><em>13</em><em>14</em><em>15</em><em>16</em></div>
+              </div>
+              <p class="ix-n">O link do candidato oferece só o <b>12h</b>.</p>
+            </div>
+            <div class="go-row"><a class="go" href="https://app.lynxs.com.br/agenda" target="_blank" rel="noopener">Abrir o Calendário <small><svg class="ico s"><use href="#i-lock"/></svg>login</small></a></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Copiloto <em>· perguntas certas, régua igual e parecer que cita a fala</em></span>
+          <span class="ex-tags"><span class="tg">transcrição</span><span class="tg">DISC</span><span class="tg">perguntas da época</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O problema</h5>
+            <p>Cada entrevistador pergunta uma coisa e avalia de um jeito; a decisão vira impressão.</p>
+            <h5>O que construí</h5>
+            <p>A lista da rodada é a única verdade do que se pergunta, alimentada por três fontes: banco por tema, IA e histórico, este com a nota média de quem já respondeu. Ao abrir a Sala, a lista congela; depois da primeira resposta, mudança na vaga não mexe mais nela. A IA extrai da transcrição as respostas abertas, sem apagar o que o entrevistador escreveu.</p>
+            <h5>A governança</h5>
+            <p>Nota e recomendação da IA aparecem na triagem e <strong>nunca na tela de decisão</strong>. <button type="button" class="term" data-d="disc">DISC</button> entra como leitura, com a frase do candidato como evidência.</p>
+          </div>
+          <div class="side">
+            <div class="card">
+              <p class="card-h">A régua de toda pergunta</p>
+              <div class="regua"><span><b>1</b>Não atendeu</span><span><b>2</b>Parcial</span><span><b>3</b>Atendeu</span><span><b>4</b>Superou</span></div>
+            </div>
+            <div class="go-row">
+              <a class="go" href="https://app.lynxs.com.br/vagas" target="_blank" rel="noopener">Abrir as Vagas <small><svg class="ico s"><use href="#i-lock"/></svg>login</small></a>
+              <a class="go lt" href="https://app.lynxs.com.br/candidatos" target="_blank" rel="noopener">Dossiês <small><svg class="ico s"><use href="#i-lock"/></svg>login</small></a>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Base Ativa <em>· consentimento com prova e acervo que volta a trabalhar</em></span>
+          <span class="ex-tags"><span class="tg">LGPD</span><span class="tg">link permanente</span><span class="tg">match com OK</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O problema</h5>
+            <p>Quem não passou vira planilha esquecida, e recontatar sem base legal é risco.</p>
+            <h5>O que construí</h5>
+            <p>Um link público e permanente por pessoa. O aceite grava o texto exato que ela viu, como prova; recusar vira opt-out, reversível. No mesmo link ela acompanha o próprio processo: etapa, horário, remarcar e sair.</p>
+            <h5>O diferencial</h5>
+            <p>Quando abre vaga nova, o acervo propõe até 10 nomes com aderência mínima de 70, e <strong>o recrutador aprova a lista antes de qualquer convite</strong>. A resposta ao contato atualiza o cadastro sozinha.</p>
+          </div>
+          <div class="side">
+            <div class="card">
+              <p class="card-h">O que fica registrado</p>
+              <ul class="spec wide">
+                <li><span class="kv">Aceite</span><span>o texto exibido, a data e o canal</span></li>
+                <li><span class="kv">Recusa</span><span>opt-out reversível, sem trava de tempo</span></li>
+                <li><span class="kv">Match</span><span>a lista que o recrutador aprovou</span></li>
+              </ul>
+            </div>
+            <div class="go-row"><a class="go" href="https://app.lynxs.com.br/candidatos" target="_blank" rel="noopener">Abrir Candidatos <small><svg class="ico s"><use href="#i-lock"/></svg>login</small></a></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Engenharia <em>· como 127 PRs entraram sem derrubar a produção</em></span>
+          <span class="ex-tags"><span class="tg">GitHub Actions</span><span class="tg">Vitest</span><span class="tg">Deno</span><span class="tg">TypeScript</span><span class="tg">Vercel</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O que construí</h5>
+            <p>Todo PR roda lint, tipos, 749 testes Vitest, o portão das funções em Deno (278 testes) e o build. O merge publica o front na Vercel e as 47 funções no Supabase. Migração não sobe sozinha: cada arquivo diz no cabeçalho o resultado esperado e como conferir.</p>
+            <h5>O diagnóstico</h5>
+            <p>Uma página de Testes AI prova o que dispara de verdade (e-mail, WhatsApp, convite de agenda, transcrição), e uma função de status confere chave de IA, criptografia, TURN e cada função publicada. <strong>O mapa do sistema muda no mesmo PR que muda o sistema.</strong></p>
+          </div>
+          <div class="side">
+            <div class="card">
+              <p class="card-h">O caminho de todo PR</p>
+              <div class="pipe"><span>lint</span><em>→</em><span>tipos</span><em>→</em><span>749 testes</span><em>→</em><span>278 Deno</span><em>→</em><span>build</span><em>→</em><span class="ok">publica</span></div>
+            </div>
+            <div class="go-row"><a class="go" href="https://app.lynxs.com.br/teste-cv" target="_blank" rel="noopener">Abrir Testes AI <small><svg class="ico s"><use href="#i-lock"/></svg>login</small></a></div>
+          </div>
+        </div>
+      </details>
+    </div>
+  </article>
+
+  <!-- ================= FORCE ================= -->
+  <article class="panel prod" id="force" aria-labelledby="force-h">
+    <header class="prod-h">
+      <div class="pmark pm-f" aria-hidden="true"><svg viewBox="0 0 64 64"><path class="bm-up" d="M17 36 L32 19 L47 36"/><path class="bm-base" d="M16 45 H48"/></svg></div>
+      <div>
+        <h3 id="force-h">Xpannd FORCE</h3>
+        <p class="prod-tag">Plano, passos e decisões do próximo mercado, num lugar só</p>
+        <p class="prod-ctx">A sala de comando dos projetos de expansão internacional da Xpannd, com área do cliente e IA que registra, cobra e resume. Nasceu de um painel feito no Claude e virou plataforma em 8 dias.</p>
+        <div class="meta">
+          <a class="pill" href="https://www.xpannd.com.br/force/" target="_blank" rel="noopener"><span class="dot" aria-hidden="true"></span>xpannd.com.br/force</a>
+          <span class="pill">29/09 a 06/10 de 2026</span>
+          <span class="pill">Meu papel: tudo, do produto ao banco</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="stats">
+      <div class="st"><div class="st-n">15 mil</div><div class="st-c">linhas, sem framework</div></div>
+      <div class="st"><div class="st-n">12</div><div class="st-c">migrações de banco</div></div>
+      <div class="st"><div class="st-n">11</div><div class="st-c">APIs na Vercel, em São Paulo</div></div>
+      <div class="st"><div class="st-n">393</div><div class="st-c">testes de regra no banco, em <button type="button" class="term" data-d="pglite">PGlite</button></div></div>
+      <div class="st"><div class="st-n">6</div><div class="st-c">rotinas de IA por projeto</div></div>
+      <div class="st"><div class="st-n">10</div><div class="st-c">entregas num só dia (02/10)</div></div>
+    </div>
+
+    <div class="viz two">
+      <div class="viz-col">
+        <div class="viz-h"><h4>Registrar em uma linha</h4><span>exemplo com dados inventados</span></div>
+        <div class="card reg" id="reg">
+          <div class="reg-top"><span class="kbd">N</span><span>Registrar</span><span class="reg-hint">uma frase, do jeito que vier</span></div>
+          <div class="reg-in"><span id="reg-tx">Ana manda a lista de distribuidores até sexta, passo MX2</span><span class="caret" aria-hidden="true"></span></div>
+          <div class="reg-out" id="reg-out" aria-label="O que a IA entendeu"><span class="rc k">Tarefa</span><span class="rc">Passo MX2</span><span class="rc">Responsável: Ana</span><span class="rc">Prazo: sexta</span></div>
+          <p class="rl-h">Registrados agora</p>
+          <ul class="reg-log" id="reg-log">
+            <li><span class="rl-k">Pergunta</span><span class="rl-t">Pergunta ao cliente: qual o volume mínimo por pedido?</span></li>
+            <li><span class="rl-k">Evento</span><span class="rl-t">Reunião com o importador na quarta às 15h</span></li>
+          </ul>
+          <div class="reg-meta"><span>Linha: Claude Haiku 4.5</span><span>Texto colado: Sonnet 5.5</span><span>O que você escreve vence a IA</span></div>
+        </div>
+      </div>
+      <div class="viz-col">
+        <div class="viz-h"><h4>Quem vê o quê</h4><span>decidido dentro do banco, a cada leitura</span></div>
+        <div class="nest">
+          <div class="nb"><div class="nb-h"><b>Empresa</b><i>dono, admin, membro</i></div>
+            <div class="nb"><div class="nb-h"><b>Projeto</b><i>gestor, time, leitura, cliente</i></div>
+              <div class="nb"><div class="nb-h"><b>País</b><i>o time do Chile lê o Chile e o núcleo</i></div>
+                <div class="nb doc"><div class="nb-h"><b>Documento</b><i>tarefa, ação, reunião, arquivo</i></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="gate"><svg class="ico" aria-hidden="true"><use href="#i-shield"/></svg><div><b>Porta do banco</b><span>papel, país e segundo fator (<button type="button" class="term" data-d="aal2">aal2</button>) conferidos em cada consulta, calculados uma vez por leitura</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ex-list">
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Projeto canônico <em>· o código não conhece nenhum cliente</em></span>
+          <span class="ex-tags"><span class="tg">configuração</span><span class="tg">4 camadas</span><span class="tg">modelo de projeto</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O problema</h5>
+            <p>O FORCE nasceu de um painel feito para um cliente. Havia 294 menções a ele no código: nomes, países, cláusulas e textos de tela. Um segundo cliente exigiria um segundo sistema.</p>
+            <h5>O que construí</h5>
+            <p>Tudo que era do cliente virou configuração, em quatro camadas. <strong>Um projeto inventado roda inteiro sem nenhum resto do primeiro</strong>, conferido texto a texto, e o cliente real seguiu igual, comparado tela a tela antes e depois.</p>
+          </div>
+          <div class="side">
+            <div class="card">
+              <p class="card-h">As quatro camadas</p>
+              <div class="layers">
+                <div class="ly"><b>Projeto</b><i>dados: cliente, países, combinados</i></div>
+                <div class="ly"><b>Pacote de setor</b><i>opcional: tabelas e famílias de produto</i></div>
+                <div class="ly"><b>Modelo</b><i>entrada em mercado: frentes, passos, rotinas</i></div>
+                <div class="ly base"><b>Plataforma</b><i>o código, que não conhece cliente</i></div>
+              </div>
+            </div>
+            <div class="go-row"><a class="go" data-force="projeto" href="https://www.xpannd.com.br/force/" target="_blank" rel="noopener">Abrir Projeto <small><svg class="ico s"><use href="#i-lock"/></svg>login e código</small></a></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Começar do que existir <em>· o projeto nasce de uma proposta, pesquisa ou contrato</em></span>
+          <span class="ex-tags"><span class="tg">pdf.js</span><span class="tg">mammoth</span><span class="tg">JSZip</span><span class="tg">SheetJS</span><span class="tg">Claude</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O problema</h5>
+            <p>Projeto de expansão nem sempre tem contrato. Tem proposta, pesquisa, planilha do cliente, ata. Montar o plano à mão a partir disso leva dias.</p>
+            <h5>O que construí</h5>
+            <p>O navegador lê PDF, Word, PowerPoint e Excel e marca a origem de cada trecho. A IA monta cliente, objetivo, mercados, plano até o sim e depois do sim, perguntas e combinados. <strong>Cada item mostra de onde veio e em que estado está</strong>: proposto, aceito ou assinado. O contrato vira só mais uma fonte.</p>
+          </div>
+          <div class="side">
+            <div class="card">
+              <p class="card-h">Marcas de origem</p>
+              <ul class="spec wide">
+                <li><span class="kv">[p. 4]</span><span>página do PDF</span></li>
+                <li><span class="kv">[slide 2]</span><span>slide da apresentação</span></li>
+                <li><span class="kv">[aba Preços]</span><span>aba da planilha</span></li>
+              </ul>
+            </div>
+            <div class="go-row"><a class="go" data-force="comecar" href="https://www.xpannd.com.br/force/" target="_blank" rel="noopener">Começar um projeto <small><svg class="ico s"><use href="#i-lock"/></svg>login e código</small></a></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Registrar em uma linha <em>· uma frase vira tarefa, evento, decisão, risco ou pergunta</em></span>
+          <span class="ex-tags"><span class="tg">Claude Haiku 4.5</span><span class="tg">Claude Sonnet 5.5</span><span class="tg">limite por projeto</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O problema</h5>
+            <p>Formulário de tarefa com 20 campos faz o time anotar no WhatsApp, e o plano fica velho.</p>
+            <h5>O que construí</h5>
+            <p>A tecla N abre uma linha em qualquer tela. A frase passa pelo modelo rápido 900 ms depois de você parar de digitar; texto colado passa pelo modelo padrão. A tarefa ficou com 4 campos à vista e o resto em "mais detalhes". <strong>O que a pessoa escreve vence a IA</strong>: código do passo e data digitados não mudam.</p>
+            <h5>O custo sob controle</h5>
+            <p>Cada uso de IA é registrado no banco por projeto e por finalidade (início, tarefas, reuniões, preços), com limite próprio.</p>
+          </div>
+          <div class="side">
+            <div class="card">
+              <p class="card-h">Modelo certo para cada uso</p>
+              <ul class="mini">
+                <li><span><span class="tier s">rápido</span><b>Haiku 4.5</b></span><em>a linha</em></li>
+                <li><span><span class="tier p">padrão</span><b>Sonnet 5.5</b></span><em>colar, ler, resumir</em></li>
+              </ul>
+            </div>
+            <div class="go-row"><a class="go" data-force="central" href="https://www.xpannd.com.br/force/" target="_blank" rel="noopener">Abrir Hoje <small><svg class="ico s"><use href="#i-lock"/></svg>login e código</small></a></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Rotinas da IA <em>· seis rotinas que cobram, resumem e lapidam o plano</em></span>
+          <span class="ex-tags"><span class="tg">Vercel Cron</span><span class="tg">Sugere · Pede · Faz</span><span class="tg">Caixa da IA</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O problema</h5>
+            <p>Gestor de projeto passa a semana cobrando atraso e montando atualização para o cliente.</p>
+            <h5>O que construí</h5>
+            <p>Seis rotinas por projeto, cada uma com autonomia própria: Sugere, Pede ou Faz. Em dias úteis às 8h o servidor só junta os fatos e grava um cartão por frente na Caixa da IA. <strong>A IA entra quando alguém abre o cartão para revisar</strong>, e a decisão fica registrada com autor.</p>
+          </div>
+          <div class="side">
+            <div class="card">
+              <p class="card-h">Rotinas e quando rodam</p>
+              <ul class="mini">
+                <li><b>Atraso</b><em>Pede · dias úteis</em></li>
+                <li><b>Pedido parado</b><em>Sugere · 5 dias</em></li>
+                <li><b>Semana</b><em>Sugere · sexta 14h</em></li>
+                <li><b>Relatório</b><em>Sugere · 5 dias antes</em></li>
+                <li><b>Lapidar o plano</b><em>Sugere · segunda</em></li>
+                <li><b>Pesquisa do país</b><em>Sugere · até o dia 3</em></li>
+              </ul>
+            </div>
+            <div class="go-row"><a class="go" data-force="caixa" href="https://www.xpannd.com.br/force/" target="_blank" rel="noopener">Abrir a Caixa da IA <small><svg class="ico s"><use href="#i-lock"/></svg>login e código</small></a></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Acesso e dois fatores <em>· quem vê o quê, decidido dentro do banco</em></span>
+          <span class="ex-tags"><span class="tg">Supabase Auth</span><span class="tg">TOTP</span><span class="tg">RLS</span><span class="tg">convite de uso único</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O problema</h5>
+            <p>Plano de expansão tem preço de concorrente, transcrição de reunião e nota interna. O cliente pode ver parte disso, o time de um país não precisa ver o outro, e senha sozinha não basta.</p>
+            <h5>O que construí</h5>
+            <p>Pessoa, empresa, projeto e país, com papéis de dono a cliente. Convite por e-mail e WhatsApp com link de uso único, válido por 7 dias e guardado só como hash. O código do aplicativo autenticador (<button type="button" class="term" data-d="totp">TOTP</button>) é exigido por empresa <strong>dentro das funções que decidem o acesso</strong>: sem o segundo fator, a consulta volta vazia. Ninguém zera o dois fatores do dono pela tela.</p>
+          </div>
+          <div class="side">
+            <div class="card">
+              <p class="card-h">Ensaio em produção, usuário inventado</p>
+              <table class="tt">
+                <thead><tr><th>Situação</th><th>Docs</th></tr></thead>
+                <tbody>
+                  <tr><td>Empresa não exige; pessoa sem aparelho</td><td class="ok">631</td></tr>
+                  <tr><td>Com aparelho, entrou só com senha</td><td class="no">0</td></tr>
+                  <tr><td>Com aparelho, entrou com o código</td><td class="ok">631</td></tr>
+                  <tr><td>Empresa exige; pessoa sem aparelho</td><td class="no">0</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="go-row"><a class="go" href="https://www.xpannd.com.br/force/" target="_blank" rel="noopener">Abrir a entrada <small><svg class="ico s"><use href="#i-lock"/></svg>login e código</small></a></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Leitura rápida <em>· a mesma regra, de 0,7 s para 2 ms</em></span>
+          <span class="ex-tags"><span class="tg">Postgres</span><span class="tg">política de acesso</span><span class="tg">88 casos iguais</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O problema</h5>
+            <p>Com os dois fatores, ler os 631 documentos do projeto passou a levar até 0,72 s. A política de acesso chamava funções para cada documento.</p>
+            <h5>O que fiz</h5>
+            <p>Reescrevi a política para calcular as chaves de acesso uma vez por consulta e comparar por interseção. <strong>A leitura caiu para 1,6 a 2,1 ms</strong>, e um teste de 88 casos prova que cada perfil continua vendo exatamente os mesmos documentos.</p>
+          </div>
+          <div class="side">
+            <div class="card">
+              <p class="card-h">Leitura de 631 documentos, mesma escala</p>
+              <div class="bars">
+                <div><div class="bar-l"><span>Antes</span><b>até 720 ms</b></div><div class="bar-t"><div class="bar-f" style="width:100%"></div></div></div>
+                <div><div class="bar-l"><span>Depois</span><b>até 2,1 ms</b></div><div class="bar-t"><div class="bar-f g" style="width:.29%"></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Área do cliente <em>· aprova em um clique e manda arquivo sem tocar no servidor</em></span>
+          <span class="ex-tags"><span class="tg">dois fatores obrigatório</span><span class="tg">URL assinada</span><span class="tg">Resend</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O problema</h5>
+            <p>Aprovação de cliente se perde em e-mail, e o arquivo chega pelo WhatsApp de alguém.</p>
+            <h5>O que construí</h5>
+            <p>O cliente só entra com dois fatores e vê só o que foi liberado. Aprova, avisa que já mandou (até 5 arquivos e 20 MB, por link de envio de uso único), diz até quando manda ou pede uma conversa. Tudo vira cartão na Caixa do time. <strong>Tabela de preço, transcrição e nota interna nunca chegam ao papel cliente</strong>, por regra do banco.</p>
+          </div>
+          <div class="side">
+            <div class="card">
+              <p class="card-h">O que o cliente pode fazer</p>
+              <ul class="mini">
+                <li><b>Aprovo</b><em>ou prefiro conversar</em></li>
+                <li><b>Já mandei</b><em>até 5 arquivos</em></li>
+                <li><b>Mando até</b><em>data combinada</em></li>
+                <li><b>Tenho uma dúvida</b><em>sempre ligado</em></li>
+              </ul>
+            </div>
+            <div class="go-row"><a class="go" data-force="projeto" href="https://www.xpannd.com.br/force/" target="_blank" rel="noopener">Configurar a área <small><svg class="ico s"><use href="#i-lock"/></svg>login e código</small></a></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Reuniões e agenda <em>· o Fireflies vira tarefa e a agenda acusa conflito</em></span>
+          <span class="ex-tags"><span class="tg">Fireflies GraphQL</span><span class="tg">.ics</span><span class="tg">Nager.Date</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O que construí</h5>
+            <p>A reunião gravada no Fireflies vira resumo, decisões e tarefas sugeridas, já com o passo do plano. Nada entra sozinho, porque a conta tem outros assuntos: a triagem usa sinais do projeto. A agenda assina no Google por um link privado, em modo discreto, traz feriados de cada país e acusa conflito antes que ele aconteça.</p>
+          </div>
+          <div class="side">
+            <div class="card">
+              <p class="card-h">Conflitos que a agenda acusa</p>
+              <ul class="mini">
+                <li><b>Ausência × tarefa</b><em>da mesma pessoa</em></li>
+                <li><b>Prazo em feriado</b><em>adiantar 1 clique</em></li>
+                <li><b>Viagem em feriado</b><em>no destino</em></li>
+                <li><b>Duas viagens</b><em>mesma pessoa</em></li>
+              </ul>
+            </div>
+            <div class="go-row">
+              <a class="go" data-force="reunioes" href="https://www.xpannd.com.br/force/" target="_blank" rel="noopener">Reuniões <small><svg class="ico s"><use href="#i-lock"/></svg>login e código</small></a>
+              <a class="go lt" data-force="agenda" href="https://www.xpannd.com.br/force/" target="_blank" rel="noopener">Agenda <small><svg class="ico s"><use href="#i-lock"/></svg>login</small></a>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Inteligência de mercado <em>· dado público de aduana vira mapa do mercado</em></span>
+          <span class="ex-tags"><span class="tg">18 semanas</span><span class="tg">classificador</span><span class="tg">preço por kg</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O problema</h5>
+            <p>Entrar num país sem saber quem importa o quê, quanto e por qual preço é aposta.</p>
+            <h5>O que construí</h5>
+            <p>As bases semanais públicas de importação passam por um classificador de produto, com litro estimado pela embalagem e comparação de marcas por kg. <strong>A vista Números mostra o mercado do país por linha de produto</strong>, importador por importador, e alimenta a lista de prospectos.</p>
+          </div>
+          <div class="side">
+            <div class="go-row"><a class="go" data-force="intel" href="https://www.xpannd.com.br/force/" target="_blank" rel="noopener">Abrir Inteligência <small><svg class="ico s"><use href="#i-lock"/></svg>login e código</small></a></div>
+          </div>
+        </div>
+      </details>
+    </div>
+  </article>
+
+  <!-- ================= MACROS ================= -->
+  <article class="panel prod" id="macros" aria-labelledby="macros-h">
+    <header class="prod-h">
+      <div class="pmark pm-m" aria-hidden="true">M</div>
+      <div>
+        <h3 id="macros-h">Macros</h3>
+        <p class="prod-tag">A foto do prato vira calorias e macros, e o dia fecha no saldo</p>
+        <p class="prod-ctx">Um app pessoal de nutrição que virou produto: instalável no celular, com contas, coach de IA e lembretes. Aberto a qualquer pessoa.</p>
+        <div class="meta">
+          <a class="pill" href="https://macros-snowy.vercel.app/" target="_blank" rel="noopener"><span class="dot" aria-hidden="true"></span>macros-snowy.vercel.app</a>
+          <span class="pill">16/09 a 25/09 de 2026</span>
+          <span class="pill">Meu papel: tudo, de ponta a ponta</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="stats">
+      <div class="st"><div class="st-n">3,8 mil</div><div class="st-c">linhas, JavaScript puro</div></div>
+      <div class="st"><div class="st-n">6</div><div class="st-c">APIs na Vercel</div></div>
+      <div class="st"><div class="st-n">38</div><div class="st-c">versões publicadas</div></div>
+      <div class="st"><div class="st-n">10</div><div class="st-c">dias, da v1.3 à v6.1</div></div>
+      <div class="st"><div class="st-n">13</div><div class="st-c">versões em um só dia (17/09)</div></div>
+      <div class="st"><div class="st-n">1</div><div class="st-c">modelo: Claude Opus 5, com visão</div></div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-h"><h4>Da foto ao número</h4><span>a chave da IA nunca sai do servidor</span></div>
+      <div class="mviz">
+        <div class="lane" style="margin-top:0"><span class="lane-l">Registro</span>
+          <div class="flow-w"><div class="flow">
+            <div class="node"><b>Foto, voz ou texto</b><i>HEIC vira JPEG de 1600 px</i></div>
+            <div class="node"><b>/api/estimar</b><i>função na Vercel</i></div>
+            <div class="node ai"><b>Claude Opus 5</b><i>visão + <button type="button" class="term" data-d="json">JSON Schema</button></i></div>
+            <div class="node"><b>Itens</b><i>porção e macros editáveis</i></div>
+            <div class="node hl"><b>Saldo do dia</b><i>limite = gasto + saldo</i></div>
+          </div></div>
+        </div>
+        <div class="card ringc">
+          <svg class="ring" viewBox="0 0 120 120" role="img" aria-label="Exemplo: 1.760 de 2.150 kcal do limite do dia"><circle class="ring-bg" cx="60" cy="60" r="50"/><circle class="ring-fg" cx="60" cy="60" r="50" stroke-dasharray="257.2 314.16" transform="rotate(-90 60 60)"/></svg>
+          <div class="ring-t"><b>1.760 de 2.150</b>kcal no dia, exemplo: gasto de 2.650 com saldo de −500</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ex-list">
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Foto vira macros <em>· resposta estruturada, sem adivinhar</em></span>
+          <span class="ex-tags"><span class="tg">Claude Opus 5</span><span class="tg">visão</span><span class="tg">JSON Schema</span><span class="tg">fallback no servidor</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O que construí</h5>
+            <p>Foto, voz ou texto. O aparelho recodifica a foto (o HEIC do iPhone vira JPEG de até 1600 px) e a função manda para o Claude Opus 5, que devolve itens, porções e macros num JSON definido por esquema, com pensamento adaptativo e modelo de reserva no servidor. <strong>Print do Apple Fitness ou do Garmin vira gasto do dia</strong>; sem kcal no print, a estimativa usa <button type="button" class="term" data-d="met">MET</button> × peso × horas.</p>
+          </div>
+          <div class="side"><div class="go-row"><a class="go" href="https://macros-snowy.vercel.app/" target="_blank" rel="noopener">Abrir o Macros <small><svg class="ico s"><use href="#i-out"/></svg>aberto</small></a></div></div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Do artifact ao app <em>· nasceu no Claude e virou app em um dia</em></span>
+          <span class="ex-tags"><span class="tg">PWA</span><span class="tg">serverless</span><span class="tg">Supabase Auth</span><span class="tg">RLS</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O problema</h5>
+            <p>As primeiras versões rodavam como artifact do Claude, e o runtime não enviava imagem para a IA. Sem foto, não havia produto.</p>
+            <h5>O que fiz</h5>
+            <p>Troquei de plataforma: <button type="button" class="term" data-d="pwa">PWA</button> estática mais função serverless, com a chave só no servidor. <strong>No mesmo dia vieram contas com RLS, cota de IA por pessoa, push e onboarding: 13 versões em 17/09.</strong></p>
+          </div>
+          <div class="side">
+            <div class="card">
+              <p class="card-h">17/09, em ordem</p>
+              <ul class="mini">
+                <li><b>v2.0</b><em>PWA e IA no servidor</em></li>
+                <li><b>v2.4</b><em>lembretes por push</em></li>
+                <li><b>v3.0</b><em>contas, RLS e cota de IA</em></li>
+                <li><b>v3.6</b><em>onboarding em 3 passos</em></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Saldo, não meta fixa <em>· a ciência no lugar da regra de três</em></span>
+          <span class="ex-tags"><span class="tg">Hall et al., Lancet 2011</span><span class="tg">simulação diária</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O que construí</h5>
+            <p>O limite do dia é o gasto mais o saldo que a pessoa escolheu. A projeção de peso simula dia a dia com 7.700 kcal por kg e a adaptação do metabolismo de cerca de 24 kcal por dia a cada kg perdido, então <strong>a curva achata como na vida real</strong>. Pausa de manutenção de 2 semanas a cada 10, e sequência que perdoa um dia por semana.</p>
+          </div>
+          <div class="side">
+            <div class="card">
+              <p class="card-h">Constantes do modelo</p>
+              <ul class="spec wide">
+                <li><span class="kv">7.700</span><span>kcal por kg (Wishnofsky)</span></li>
+                <li><span class="kv">~24</span><span>kcal por dia de adaptação por kg perdido (Hall, 2011)</span></li>
+                <li><span class="kv">2 de 10</span><span>semanas de manutenção</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Coach com ações <em>· uma conversa que muda o plano</em></span>
+          <span class="ex-tags"><span class="tg">ferramentas com esquema</span><span class="tg">histórico resumido</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O que construí</h5>
+            <p>O coach conversa com o histórico resumido no servidor e pode agir: mudar a meta, os alvos de macro, a divisão das refeições e os lembretes. <strong>Cada ação tem esquema, e a pessoa vê o que mudou.</strong></p>
+          </div>
+          <div class="side"><div class="go-row"><a class="go" href="https://macros-snowy.vercel.app/" target="_blank" rel="noopener">Abrir o Macros <small><svg class="ico s"><use href="#i-out"/></svg>aberto</small></a></div></div>
+        </div>
+      </details>
+
+      <details class="ex">
+        <summary>
+          <span><span class="ex-t">Infraestrutura enxuta <em>· push, cota e atualização sem servidor próprio</em></span>
+          <span class="ex-tags"><span class="tg">pg_cron</span><span class="tg">Web Push</span><span class="tg">service worker</span></span></span>
+          <span class="pl" aria-hidden="true"><svg class="ico"><use href="#i-plus"/></svg></span>
+        </summary>
+        <div class="ex-b">
+          <div>
+            <h5>O que construí</h5>
+            <p>Supabase com Auth e RLS por pessoa, cota diária de IA conferida no banco e pg_cron chamando a função de lembretes a cada 10 min, que manda push pelo padrão VAPID. O app grava no aparelho, sincroniza com a conta e <strong>se atualiza sozinho</strong> quando sai versão nova.</p>
+          </div>
+          <div class="side">
+            <div class="card">
+              <p class="card-h">Custo de servidor próprio</p>
+              <ul class="spec wide"><li><span class="kv">zero</span><span>Vercel, Supabase e Anthropic por uso</span></li></ul>
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+  </article>
+</section>
+
+<section class="sec" id="ferramentas" aria-labelledby="ferr-h">
+  <div class="sec-h">
+    <p class="eyebrow">Ferramentas</p>
+    <h2 id="ferr-h">O papel de cada ferramenta</h2>
+    <p class="sec-s">Cada peça entrou pelo problema que resolve. Termos sublinhados explicam o significado ao passar o cursor ou tocar.</p>
+  </div>
+  <div class="panel tools">
+    <div class="tools-top">
+      <div class="seg" role="group" aria-label="Filtrar por produto">
+        <button type="button" aria-pressed="true" data-f="all">Todos</button>
+        <button type="button" aria-pressed="false" data-f="l">Lynxs</button>
+        <button type="button" aria-pressed="false" data-f="f">FORCE</button>
+        <button type="button" aria-pressed="false" data-f="m">Macros</button>
+      </div>
+      <div class="legend" aria-hidden="true"><span><i class="pd on l">L</i>Lynxs</span><span><i class="pd on f">F</i>FORCE</span><span><i class="pd on m">M</i>Macros</span></div>
+    </div>
+
+    <div class="tgrp">IA</div>
+    <div class="trow" data-p="lfm"><div class="tn"><button type="button" class="term" data-d="claudecode">Claude Code</button></div><div class="tu">Agente de código que escreve, testa e abre PR sob minha direção, seguindo as regras escritas de cada projeto.</div><div class="tp"><i class="pd on l">L</i><i class="pd on f">F</i><i class="pd on m">M</i><span class="vh">Lynxs, FORCE e Macros</span></div></div>
+    <div class="trow" data-p="fm"><div class="tn">Claude API</div><div class="tu">Opus 5 lê a foto do prato com resposta em esquema; no FORCE, Haiku 4.5 na linha e Sonnet 5.5 nas leituras, com limite por projeto.</div><div class="tp"><i class="pd l">L</i><i class="pd on f">F</i><i class="pd on m">M</i><span class="vh">FORCE e Macros</span></div></div>
+    <div class="trow" data-p="l"><div class="tn"><button type="button" class="term" data-d="openrouter">OpenRouter</button></div><div class="tu">Um modelo por tarefa: Qwen 3.5 Flash conversa, Whisper transcreve, Voxtral ouve. Chave de cada empresa cifrada no banco.</div><div class="tp"><i class="pd on l">L</i><i class="pd f">F</i><i class="pd m">M</i><span class="vh">Lynxs</span></div></div>
+    <div class="trow" data-p="f"><div class="tn">Fireflies</div><div class="tu">API GraphQL: a reunião gravada vira resumo, decisões e tarefas já com o passo do plano.</div><div class="tp"><i class="pd l">L</i><i class="pd on f">F</i><i class="pd m">M</i><span class="vh">FORCE</span></div></div>
+
+    <div class="tgrp">Dados e servidor</div>
+    <div class="trow" data-p="lfm"><div class="tn">Supabase Postgres e <button type="button" class="term" data-d="rls">RLS</button></div><div class="tu">Quem vê o quê mora no banco: políticas por empresa, projeto, país e pessoa.</div><div class="tp"><i class="pd on l">L</i><i class="pd on f">F</i><i class="pd on m">M</i><span class="vh">Lynxs, FORCE e Macros</span></div></div>
+    <div class="trow" data-p="lfm"><div class="tn">Supabase Auth</div><div class="tu">Login, link de senha que não se gasta ao abrir e, no FORCE, código do autenticador exigido por empresa.</div><div class="tp"><i class="pd on l">L</i><i class="pd on f">F</i><i class="pd on m">M</i><span class="vh">Lynxs, FORCE e Macros</span></div></div>
+    <div class="trow" data-p="l"><div class="tn"><button type="button" class="term" data-d="edge">Edge Functions</button></div><div class="tu">47 funções em Deno: agentes, webhooks, transcrição, agenda e páginas públicas com token.</div><div class="tp"><i class="pd on l">L</i><i class="pd f">F</i><i class="pd m">M</i><span class="vh">Lynxs</span></div></div>
+    <div class="trow" data-p="fm"><div class="tn">Vercel Functions</div><div class="tu">APIs em Node com a chave só no servidor; no FORCE, região São Paulo e cron dos lembretes em dias úteis.</div><div class="tp"><i class="pd l">L</i><i class="pd on f">F</i><i class="pd on m">M</i><span class="vh">FORCE e Macros</span></div></div>
+    <div class="trow" data-p="lm"><div class="tn"><button type="button" class="term" data-d="pgcron">pg_cron</button>, pg_net e <button type="button" class="term" data-d="vault">Vault</button></div><div class="tu">O relógio dentro do banco: agentes do Lynxs a cada 1 e 5 min, push do Macros a cada 10 min.</div><div class="tp"><i class="pd on l">L</i><i class="pd f">F</i><i class="pd on m">M</i><span class="vh">Lynxs e Macros</span></div></div>
+    <div class="trow" data-p="lf"><div class="tn"><button type="button" class="term" data-d="realtime">Realtime</button></div><div class="tu">Sinalização do vídeo da Bancada e documentos que se atualizam ao vivo no painel do FORCE.</div><div class="tp"><i class="pd on l">L</i><i class="pd on f">F</i><i class="pd m">M</i><span class="vh">Lynxs e FORCE</span></div></div>
+    <div class="trow" data-p="lf"><div class="tn">Storage</div><div class="tu">Gravações e arquivos em bucket privado, com URL assinada de vida curta.</div><div class="tp"><i class="pd on l">L</i><i class="pd on f">F</i><i class="pd m">M</i><span class="vh">Lynxs e FORCE</span></div></div>
+    <div class="trow" data-p="f"><div class="tn"><button type="button" class="term" data-d="pglite">PGlite</button></div><div class="tu">Postgres em WebAssembly para provar as regras de acesso com as migrações reais, sem tocar a produção.</div><div class="tp"><i class="pd l">L</i><i class="pd on f">F</i><i class="pd m">M</i><span class="vh">FORCE</span></div></div>
+
+    <div class="tgrp">Entrega</div>
+    <div class="trow" data-p="lfm"><div class="tn">GitHub</div><div class="tu">Branch por tarefa e PR revisado; no Lynxs, Actions roda lint, tipos, testes e build antes do merge.</div><div class="tp"><i class="pd on l">L</i><i class="pd on f">F</i><i class="pd on m">M</i><span class="vh">Lynxs, FORCE e Macros</span></div></div>
+    <div class="trow" data-p="lfm"><div class="tn">Vercel</div><div class="tu">Hospedagem, prévia por PR e publicação automática da branch principal.</div><div class="tp"><i class="pd on l">L</i><i class="pd on f">F</i><i class="pd on m">M</i><span class="vh">Lynxs, FORCE e Macros</span></div></div>
+    <div class="trow" data-p="l"><div class="tn">Vitest e Deno test</div><div class="tu">1.027 testes no Lynxs, rodando em todo PR.</div><div class="tp"><i class="pd on l">L</i><i class="pd f">F</i><i class="pd m">M</i><span class="vh">Lynxs</span></div></div>
+
+    <div class="tgrp">Comunicação</div>
+    <div class="trow" data-p="l"><div class="tn">Cloudflare <button type="button" class="term" data-d="turn">TURN</button></div><div class="tu">Credencial de 3 h por sala: o vídeo atravessa firewall de empresa.</div><div class="tp"><i class="pd on l">L</i><i class="pd f">F</i><i class="pd m">M</i><span class="vh">Lynxs</span></div></div>
+    <div class="trow" data-p="l"><div class="tn"><button type="button" class="term" data-d="webrtc">WebRTC</button></div><div class="tu">Vídeo direto entre entrevistador e candidato, sem instalar nada.</div><div class="tp"><i class="pd on l">L</i><i class="pd f">F</i><i class="pd m">M</i><span class="vh">Lynxs</span></div></div>
+    <div class="trow" data-p="l"><div class="tn">Z-API (WhatsApp)</div><div class="tu">O agente conversa pelo WhatsApp da agência; cada mensagem que chega acorda o executor.</div><div class="tp"><i class="pd on l">L</i><i class="pd f">F</i><i class="pd m">M</i><span class="vh">Lynxs</span></div></div>
+    <div class="trow" data-p="lf"><div class="tn">Resend</div><div class="tu">E-mail transacional com remetente do domínio, convites de agenda e lembretes do dia.</div><div class="tp"><i class="pd on l">L</i><i class="pd on f">F</i><i class="pd m">M</i><span class="vh">Lynxs e FORCE</span></div></div>
+    <div class="trow" data-p="lf"><div class="tn">iCalendar (<button type="button" class="term" data-d="ics">.ics</button>)</div><div class="tu">Convite que entra na agenda com Sim e Não no Lynxs; feed privado para o Google Agenda no FORCE.</div><div class="tp"><i class="pd on l">L</i><i class="pd on f">F</i><i class="pd m">M</i><span class="vh">Lynxs e FORCE</span></div></div>
+    <div class="trow" data-p="m"><div class="tn">Web Push e <button type="button" class="term" data-d="pwa">PWA</button></div><div class="tu">App instalável, com lembrete no celular e atualização sozinha.</div><div class="tp"><i class="pd l">L</i><i class="pd f">F</i><i class="pd on m">M</i><span class="vh">Macros</span></div></div>
+
+    <div class="tgrp">No navegador</div>
+    <div class="trow" data-p="f"><div class="tn">pdf.js, mammoth, JSZip, SheetJS</div><div class="tu">Lê PDF, Word, PowerPoint e Excel no próprio navegador e marca a página de origem.</div><div class="tp"><i class="pd l">L</i><i class="pd on f">F</i><i class="pd m">M</i><span class="vh">FORCE</span></div></div>
+    <div class="trow" data-p="lf"><div class="tn">Nager.Date, ViaCEP, OpenStreetMap</div><div class="tu">Feriados por país; CEP do candidato vira distância até a vaga.</div><div class="tp"><i class="pd on l">L</i><i class="pd on f">F</i><i class="pd m">M</i><span class="vh">Lynxs e FORCE</span></div></div>
+    <div class="trow" data-p="l"><div class="tn">React 19 e TypeScript</div><div class="tu">Front do Lynxs com tipos de ponta a ponta, Tailwind e Radix.</div><div class="tp"><i class="pd on l">L</i><i class="pd f">F</i><i class="pd m">M</i><span class="vh">Lynxs</span></div></div>
+    <div class="trow" data-p="fm"><div class="tn">HTML e JavaScript puros</div><div class="tu">FORCE e Macros sem framework: uma página, carregamento imediato.</div><div class="tp"><i class="pd l">L</i><i class="pd on f">F</i><i class="pd on m">M</i><span class="vh">FORCE e Macros</span></div></div>
+  </div>
+</section>
+
+<section class="sec" id="gaps" aria-labelledby="gaps-h">
+  <div class="sec-h">
+    <p class="eyebrow">Gaps que fechei</p>
+    <h2 id="gaps-h">Achar a causa raiz vale mais que o remendo</h2>
+    <p class="sec-s">Seis problemas reais de produção, com o antes, o depois e a causa.</p>
+  </div>
+  <div class="gaps">
+    <article class="panel gap">
+      <div class="gap-h"><h3>Leitura do painel</h3><span class="chip-p p-f">FORCE</span></div>
+      <dl class="ba"><dt class="b">Antes</dt><dd>até 720 ms para ler 631 documentos</dd><dt class="a">Depois</dt><dd class="a">até 2,1 ms, mesma regra</dd></dl>
+      <p class="gap-w">Causa: a política de acesso chamava funções a cada documento.</p>
+    </article>
+    <article class="panel gap">
+      <div class="gap-h"><h3>Agente de WhatsApp</h3><span class="chip-p p-l">Lynxs</span></div>
+      <dl class="ba"><dt class="b">Antes</dt><dd>nunca enviava; a Central dizia "falha" sem motivo</dd><dt class="a">Depois</dt><dd class="a">envia, explica a falha e escala na terceira</dd></dl>
+      <p class="gap-w">Causa: uma função chamava outra com a chave de serviço, que não é usuário, e voltava 401.</p>
+    </article>
+    <article class="panel gap">
+      <div class="gap-h"><h3>Link de senha</h3><span class="chip-p p-f">FORCE</span></div>
+      <dl class="ba"><dt class="b">Antes</dt><dd>gasto pela prévia do WhatsApp antes da pessoa abrir</dd><dt class="a">Depois</dt><dd class="a">abrir não gasta; só salvar a senha consome</dd></dl>
+      <p class="gap-w">Causa: link de uso único consumido por uma simples visita.</p>
+    </article>
+    <article class="panel gap">
+      <div class="gap-h"><h3>Convite de agenda</h3><span class="chip-p p-l">Lynxs</span></div>
+      <dl class="ba"><dt class="b">Antes</dt><dd>o Gmail mostrava como anexo para baixar</dd><dt class="a">Depois</dt><dd class="a">entra na agenda com Sim e Não</dd></dl>
+      <p class="gap-w">Causa: nome do organizador sem aspas no arquivo .ics.</p>
+    </article>
+    <article class="panel gap">
+      <div class="gap-h"><h3>Análise da entrevista</h3><span class="chip-p p-l">Lynxs</span></div>
+      <dl class="ba"><dt class="b">Antes</dt><dd>erro genérico depois de 25 a 30 s</dd><dt class="a">Depois</dt><dd class="a">90 s de espera e o erro real na tela</dd></dl>
+      <p class="gap-w">Causa: o modelo pensa antes de escrever, e o prazo era curto.</p>
+    </article>
+    <article class="panel gap">
+      <div class="gap-h"><h3>Foto na IA</h3><span class="chip-p p-m">Macros</span></div>
+      <dl class="ba"><dt class="b">Antes</dt><dd>o artifact não enviava imagem ao modelo</dd><dt class="a">Depois</dt><dd class="a">app próprio com função no servidor, no dia seguinte</dd></dl>
+      <p class="gap-w">Causa: limite do ambiente de artifacts, não do produto.</p>
+    </article>
+  </div>
+</section>
+
+<section class="sec" id="linha" aria-labelledby="linha-h">
+  <div class="sec-h">
+    <p class="eyebrow">Linha do tempo</p>
+    <h2 id="linha-h">Oito semanas, três produtos</h2>
+  </div>
+  <div class="panel tlp">
+    <ol class="tl">
+      <li><span class="tl-d">10/08</span><span class="tl-dot l" aria-hidden="true"></span><span class="tl-t"><b>Lynxs.</b> Primeira entrega, com as regras do projeto escritas para pessoas e agentes.</span></li>
+      <li><span class="tl-d">18/08</span><span class="tl-dot l" aria-hidden="true"></span><span class="tl-t"><b>Lynxs.</b> Perguntas por tema com três fontes e consentimento por link público.</span></li>
+      <li><span class="tl-d">03/09</span><span class="tl-dot l" aria-hidden="true"></span><span class="tl-t"><b>Lynxs.</b> Revisão de segurança: acesso anônimo revogado, liberação só por coluna.</span></li>
+      <li><span class="tl-d">08/09</span><span class="tl-dot l" aria-hidden="true"></span><span class="tl-t"><b>Lynxs.</b> Trilhas 2.0: relógio no banco, e-mail, autonomia, falta e resumo diário.</span></li>
+      <li><span class="tl-d">10/09</span><span class="tl-dot l" aria-hidden="true"></span><span class="tl-t"><b>Lynxs.</b> 19 PRs no dia: página pública da vaga, memória do candidato, Central agrupável.</span></li>
+      <li><span class="tl-d">11/09</span><span class="tl-dot l" aria-hidden="true"></span><span class="tl-t"><b>Lynxs.</b> Vídeo da Bancada pela Cloudflare em produção.</span></li>
+      <li><span class="tl-d">14/09</span><span class="tl-dot l" aria-hidden="true"></span><span class="tl-t"><b>Lynxs.</b> Gravação protegida: a queda da sala não perde a entrevista.</span></li>
+    </ol>
+    <ol class="tl">
+      <li><span class="tl-d">16/09</span><span class="tl-dot m" aria-hidden="true"></span><span class="tl-t"><b>Macros.</b> Nasce como artifact no Claude.</span></li>
+      <li><span class="tl-d">17/09</span><span class="tl-dot m" aria-hidden="true"></span><span class="tl-t"><b>Macros.</b> Vira app: IA no servidor, contas com RLS e push. 13 versões no dia.</span></li>
+      <li><span class="tl-d">21/09</span><span class="tl-dot l" aria-hidden="true"></span><span class="tl-t"><b>Lynxs.</b> O agente responde numa chamada só, e horário só pelo link.</span></li>
+      <li><span class="tl-d">25/09</span><span class="tl-dot m" aria-hidden="true"></span><span class="tl-t"><b>Macros.</b> v6.1: design de vidro e registro sem confirmar.</span></li>
+      <li><span class="tl-d">29/09</span><span class="tl-dot f" aria-hidden="true"></span><span class="tl-t"><b>FORCE.</b> O painel do Claude vira plataforma: 626 registros migrados e conferidos um a um, login, empresas, países e papéis.</span></li>
+      <li><span class="tl-d">02/10</span><span class="tl-dot f" aria-hidden="true"></span><span class="tl-t"><b>FORCE.</b> 10 entregas no dia: dois fatores, leitura de 2 ms, projeto canônico, IA que registra e rotinas.</span></li>
+      <li><span class="tl-d">06/10</span><span class="tl-dot f" aria-hidden="true"></span><span class="tl-t"><b>FORCE.</b> Inteligência de mercado com dado público de aduana.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="close" id="contato" aria-labelledby="contato-h">
+  <div class="sec-h" style="margin-bottom:0">
+    <p class="eyebrow">Transformação com IA</p>
+    <h2 id="contato-h">O que eu levo para uma empresa</h2>
+    <p class="sec-s">Lidero transformação com IA do jeito que construí estes três produtos: problema de negócio, regra escrita e prova em produção.</p>
+  </div>
+  <div class="cgrid">
+    <div class="ci"><h3>Negócio primeiro</h3><p>Começo pelo P&amp;L e pela operação. A IA entra onde muda margem, prazo ou risco, e cada entrega tem um número para medir.</p></div>
+    <div class="ci"><h3>Governança desde o dia 1</h3><p>A IA compõe e classifica; decisão e dado sensível ficam com pessoas e com o banco. Regra escrita, testada e auditável.</p></div>
+    <div class="ci"><h3>Velocidade com prova</h3><p>Protótipo em dias, com teste, segurança e medida no mesmo pacote. Oito semanas, três produtos no ar.</p></div>
+    <div class="ci"><h3>Time aumentado</h3><p>Agentes de código e de operação trabalhando com regras escritas, como membros do time. Sei dirigir esse time porque dirigi.</p></div>
+  </div>
+  <div class="contact">
+    <div class="mailbox"><span id="email">michel@xpannd.com.br</span><button type="button" class="copy" id="copiar"><svg class="ico s" aria-hidden="true"><use href="#i-copy"/></svg><span>Copiar</span></button></div>
+    <a class="btn on-dark" href="mailto:michel@xpannd.com.br">Escrever um e-mail</a>
+    <a class="btn on-dark" href="https://www.xpannd.com.br/" target="_blank" rel="noopener">Conhecer a Xpannd <svg class="ico s" aria-hidden="true"><use href="#i-out"/></svg></a>
+  </div>
+</section>
+
+<p class="foot">Números conferidos em 07/10/2026 direto nos repositórios: linhas de código, testes executados (Vitest e PGlite nesta data; Deno no último CI do Lynxs) e PRs mergeados. Os exemplos das ilustrações usam dados inventados; nomes e dados de clientes ficam fora desta página. © 2026 Xpannd Partners.</p>
+
+</main>
+
+<div id="dica" role="tooltip" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+  var calmo = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var fino = !!(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches);
+
+  /* ---------- dicas ---------- */
+  var DICAS = {
+    'k-plat': ['Três plataformas', 'Lynxs (app.lynxs.com.br), Xpannd FORCE (xpannd.com.br/force) e Macros (macros-snowy.vercel.app), todas respondendo em 07/10/2026.'],
+    'k-linhas': ['Como contei', 'Linhas nos repositórios, sem dependências: Lynxs 102.136 (front, funções e SQL), FORCE 15.365 (sem o arquivo gerado) e Macros 3.829.'],
+    'k-testes': ['Como contei', 'Lynxs: 749 Vitest, executados em 07/10, e 278 Deno, verdes no último CI. FORCE: 393 regras de banco em PGlite, executadas em 07/10. Zero falhas.'],
+    'k-func': ['Como contei', 'Código que roda no servidor: 47 Edge Functions no Lynxs, 11 APIs no FORCE e 6 no Macros. Mais 95 migrações de banco nos três.'],
+    'k-entregas': ['Como contei', '127 PRs mergeados no Lynxs (de 138 no período), 33 commits no FORCE e 36 no Macros, todos na branch que publica.'],
+    'k-semanas': ['De quando a quando', 'De 10/08/2026, primeira entrega no Lynxs, a 06/10/2026, última entrega no FORCE.'],
+    'claudecode': ['Claude Code', 'Agente de código da Anthropic. Lê o repositório, escreve, roda os testes e abre o PR. Eu defino o problema e as regras, reviso, decido e publico.'],
+    'ci': ['CI, integração contínua', 'A cada PR, um robô roda lint, checagem de tipos, testes e build. Se algo quebra, a mudança não entra.'],
+    'rls': ['RLS, Row Level Security', 'A regra de quem pode ler ou mudar cada linha fica no próprio banco. Nenhuma tela, nem uma chamada direta, consegue furar.'],
+    'hash': ['Hash', 'Impressão digital de um texto. O banco guarda só o hash do link: quem lê o banco não consegue montar o link de volta.'],
+    'totp': ['TOTP', 'Código de 6 dígitos que muda a cada 30 s no aplicativo autenticador do celular, como Google Authenticator ou 1Password.'],
+    'aal2': ['aal2', 'Nível de garantia da sessão. aal1 é só senha; aal2 é senha mais o código do autenticador. O banco confere o nível em cada consulta.'],
+    'migracao': ['Migração', 'Arquivo SQL versionado que muda a estrutura do banco de forma registrada e repetível.'],
+    'edge': ['Edge Function', 'Função que roda no servidor, chamada por URL. Guarda segredos e fala com APIs externas sem expor nada ao navegador.'],
+    'webrtc': ['WebRTC', 'Padrão dos navegadores para áudio e vídeo direto entre duas pessoas, sem instalar nada.'],
+    'turn': ['TURN', 'Servidor de passagem do vídeo. Quando a rede da empresa bloqueia a conexão direta, o vídeo passa por ele.'],
+    'realtime': ['Supabase Realtime', 'Canal ao vivo entre navegadores e o banco: mensagens instantâneas e aviso quando um dado muda.'],
+    'pgcron': ['pg_cron', 'Agendador dentro do Postgres. Dispara tarefas em horário fixo, como um relógio do sistema.'],
+    'vault': ['Vault', 'Cofre de segredos do Supabase. O relógio lê a chave de lá, nunca do código.'],
+    'webhook': ['Webhook', 'Endereço que outro sistema chama quando algo acontece. Aqui, cada mensagem que chega no WhatsApp.'],
+    'ics': ['.ics', 'Formato padrão de convite de agenda. REQUEST cria o compromisso, CANCEL desmarca e uma versão maior atualiza.'],
+    'disc': ['DISC', 'Leitura de perfil comportamental: Dominância, Influência, Estabilidade e Conformidade. Aqui, sempre com a fala citada como evidência.'],
+    'pglite': ['PGlite', 'O Postgres compilado para WebAssembly. Roda as migrações reais num teste local, em segundos.'],
+    'json': ['Saída estruturada', 'A IA responde num JSON definido por esquema. O código lê sem adivinhar e recusa o que vier fora do formato.'],
+    'met': ['MET', 'Equivalente metabólico: quanto uma atividade gasta em relação ao repouso. Musculação fica perto de 5, corrida entre 8 e 11.'],
+    'pwa': ['PWA', 'Site que se instala como app no celular, abre com rede ruim e recebe notificação.'],
+    'openrouter': ['OpenRouter', 'Roteador de modelos de IA: uma integração, vários modelos, escolhidos por tarefa e custo.']
+  };
+  var bolha = $('#dica'), atual = null, tFecha = 0;
+  function posiciona() {
+    if (!atual || bolha.hidden) return;
+    var r = atual.getBoundingClientRect();
+    var bw = bolha.offsetWidth, bh = bolha.offsetHeight;
+    var vw = document.documentElement.clientWidth, vh = window.innerHeight;
+    var left = Math.min(Math.max(12, r.left + r.width / 2 - bw / 2), vw - bw - 12);
+    var top = r.bottom + 10;
+    if (top + bh > vh - 12) top = Math.max(12, r.top - bh - 10);
+    bolha.style.left = left + 'px';
+    bolha.style.top = top + 'px';
+  }
+  function mostra(el) {
+    var d = DICAS[el.getAttribute('data-d')];
+    if (!d) return;
+    clearTimeout(tFecha);
+    if (atual && atual !== el) atual.setAttribute('aria-expanded', 'false');
+    bolha.textContent = '';
+    var b = document.createElement('b'); b.textContent = d[0];
+    var s = document.createElement('span'); s.textContent = d[1];
+    bolha.appendChild(b); bolha.appendChild(s);
+    bolha.hidden = false;
+    atual = el;
+    el.setAttribute('aria-expanded', 'true');
+    posiciona();
+  }
+  function fecha() {
+    if (atual) atual.setAttribute('aria-expanded', 'false');
+    atual = null;
+    bolha.hidden = true;
+  }
+  function fechaDepois() { clearTimeout(tFecha); tFecha = setTimeout(fecha, 140); }
+  $$('[data-d]').forEach(function (el) { el.setAttribute('aria-expanded', 'false'); });
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest ? e.target.closest('[data-d]') : null;
+    if (el) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (atual === el && !bolha.hidden && !fino) fecha(); else mostra(el);
+      return;
+    }
+    if (!e.target.closest || !e.target.closest('#dica')) fecha();
+  }, true);
+  if (fino) {
+    document.addEventListener('mouseover', function (e) {
+      var el = e.target.closest ? e.target.closest('[data-d]') : null;
+      if (el) mostra(el);
+    });
+    document.addEventListener('mouseout', function (e) {
+      var el = e.target.closest ? e.target.closest('[data-d]') : null;
+      if (el && !el.contains(e.relatedTarget)) fechaDepois();
+    });
+    bolha.addEventListener('mouseenter', function () { clearTimeout(tFecha); });
+    bolha.addEventListener('mouseleave', fechaDepois);
+  }
+  document.addEventListener('focusin', function (e) {
+    var el = e.target.closest ? e.target.closest('[data-d]') : null;
+    if (el) mostra(el);
+  });
+  document.addEventListener('focusout', function (e) {
+    var el = e.target.closest ? e.target.closest('[data-d]') : null;
+    if (el) fechaDepois();
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fecha(); });
+  window.addEventListener('scroll', posiciona, { passive: true });
+  window.addEventListener('resize', fecha);
+
+  /* ---------- trilho acompanha a leitura ---------- */
+  var botoes = $$('.rb');
+  var porId = {};
+  botoes.forEach(function (a) { porId[a.getAttribute('href').slice(1)] = a; });
+  function ativa(id) {
+    var a = porId[id];
+    if (!a) return;
+    botoes.forEach(function (x) { x.classList.remove('on'); x.removeAttribute('aria-current'); });
+    a.classList.add('on');
+    a.setAttribute('aria-current', 'true');
+  }
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (ents) {
+      ents.forEach(function (en) { if (en.isIntersecting) ativa(en.target.id); });
+    }, { rootMargin: '-38% 0px -58% 0px' });
+    Object.keys(porId).forEach(function (id) { var s = document.getElementById(id); if (s) io.observe(s); });
+  }
+
+  /* ---------- filtro das ferramentas ---------- */
+  var filtros = $$('.seg [data-f]');
+  filtros.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var f = b.getAttribute('data-f');
+      filtros.forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      $$('.trow').forEach(function (r) { r.hidden = f !== 'all' && r.getAttribute('data-p').indexOf(f) < 0; });
+      $$('.tgrp').forEach(function (g) {
+        var n = g.nextElementSibling, algum = false;
+        while (n && !n.classList.contains('tgrp')) {
+          if (n.classList.contains('trow') && !n.hidden) algum = true;
+          n = n.nextElementSibling;
+        }
+        g.hidden = !algum;
+      });
+    });
+  });
+
+  /* ---------- Registrar em uma linha (exemplo animado) ---------- */
+  function dm(d) { return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2); }
+  function proximo(dia) { var d = new Date(); var n = (dia - d.getDay() + 7) % 7 || 7; d.setDate(d.getDate() + n); return d; }
+  var EX = [
+    { t: 'Ana manda a lista de distribuidores até sexta, passo MX2', c: [['Tarefa', 1], ['Passo MX2'], ['Responsável: Ana'], ['Prazo: sex ' + dm(proximo(5))]] },
+    { t: 'Decisão: abrir o Chile pelo canal de repintura', c: [['Decisão', 1], ['Registrada em ' + dm(new Date())], ['Frente: Chile']] },
+    { t: 'Risco: o frete pode atrasar a amostra em duas semanas', c: [['Risco', 1], ['A confirmar'], ['Vai para a pauta']] },
+    { t: 'Reunião com o importador na quarta às 15h', c: [['Evento', 1], ['qua ' + dm(proximo(3)) + ' · 15:00'], ['Agenda do projeto']] },
+    { t: 'Pergunta ao cliente: qual o volume mínimo por pedido?', c: [['Pergunta', 1], ['Para o cliente'], ['Fila de perguntas']] }
+  ];
+  var tx = $('#reg-tx'), saida = $('#reg-out'), caixa = $('#reg'), lista = $('#reg-log');
+  function registra(ex) {
+    if (!lista) return;
+    $$('li', lista).forEach(function (li) { if (li.lastChild && li.lastChild.textContent === ex.t) li.remove(); });
+    var li = document.createElement('li'); li.className = 'new';
+    var tipo = document.createElement('span'); tipo.className = 'rl-k'; tipo.textContent = ex.c[0][0];
+    var frase = document.createElement('span'); frase.className = 'rl-t'; frase.textContent = ex.t;
+    li.appendChild(tipo); li.appendChild(frase);
+    lista.insertBefore(li, lista.firstChild);
+    while (lista.children.length > 3) lista.removeChild(lista.lastChild);
+  }
+  function pinta(c, anima) {
+    saida.textContent = '';
+    c.forEach(function (x, i) {
+      var s = document.createElement('span');
+      s.className = 'rc' + (x[1] ? ' k' : '') + (anima ? ' new' : '');
+      if (anima) s.style.animationDelay = (i * 110) + 'ms';
+      s.textContent = x[0];
+      saida.appendChild(s);
+    });
+  }
+  if (tx && saida && caixa) {
+    tx.textContent = EX[0].t;
+    pinta(EX[0].c, false);
+    if (!calmo && 'IntersectionObserver' in window) {
+      var i = 0, visivel = false, rodando = false, t = 0;
+      var ciclo = function () {
+        if (!visivel) { rodando = false; return; }
+        rodando = true;
+        i = (i + 1) % EX.length;
+        var ex = EX[i], k = 0;
+        saida.textContent = '';
+        tx.textContent = '';
+        var passo = function () {
+          if (!visivel) { tx.textContent = ex.t; pinta(ex.c, false); rodando = false; return; }
+          k += 1;
+          tx.textContent = ex.t.slice(0, k);
+          if (k < ex.t.length) t = setTimeout(passo, 24 + Math.random() * 38);
+          else t = setTimeout(function () { pinta(ex.c, true); t = setTimeout(function () { registra(ex); t = setTimeout(ciclo, 900); }, 2600); }, 420);
+        };
+        passo();
+      };
+      new IntersectionObserver(function (ents) {
+        visivel = ents[0].isIntersecting;
+        if (visivel && !rodando) { rodando = true; clearTimeout(t); t = setTimeout(ciclo, 2200); }
+      }, { threshold: 0.35 }).observe(caixa);
+    }
+  }
+
+  /* ---------- links do FORCE abrem a tela exata quando o projeto é conhecido ---------- */
+  var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  var pid = '';
+  try {
+    var q = new URLSearchParams(location.search).get('force');
+    if (q === 'sair') localStorage.removeItem('xpai-force-p');
+    else if (q && UUID.test(q)) localStorage.setItem('xpai-force-p', q);
+  } catch (e) { /* sem storage */ }
+  try { pid = localStorage.getItem('xpai-force-p') || ''; } catch (e) { pid = ''; }
+  if (!UUID.test(pid)) { try { pid = sessionStorage.getItem('xp_projeto') || ''; } catch (e) { pid = ''; } }
+  if (UUID.test(pid)) {
+    $$('a[data-force]').forEach(function (a) {
+      a.href = 'https://www.xpannd.com.br/force/painel.html?p=' + encodeURIComponent(pid) + '#' + a.getAttribute('data-force');
+    });
+  }
+
+  /* ---------- copiar o e-mail ---------- */
+  var copiar = $('#copiar'), email = $('#email');
+  if (copiar && email) {
+    copiar.addEventListener('click', function () {
+      var rotulo = copiar.querySelector('span');
+      var seleciona = function () {
+        var r = document.createRange(); r.selectNodeContents(email);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        rotulo.textContent = 'Selecionado';
+        setTimeout(function () { rotulo.textContent = 'Copiar'; }, 1800);
+      };
+      var ok = function () { rotulo.textContent = 'Copiado'; setTimeout(function () { rotulo.textContent = 'Copiar'; }, 1800); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(email.textContent.trim()).then(ok, seleciona);
+      else seleciona();
+    });
+  }
+})();
+</script>
+</body>
+</html>
