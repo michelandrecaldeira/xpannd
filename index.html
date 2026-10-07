@@ -58,6 +58,7 @@ nav{
 .nav-links{display:flex;align-items:center;gap:28px;list-style:none;}
 .nav-links a{font-size:11px;font-weight:400;color:var(--ink3);text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;transition:color 0.2s;}
 .nav-links a:hover{color:var(--copper);}
+@media(max-width:1179px){.nav-links>li.nav-ai-li{display:none;}}
 .nav-cta{background:var(--ink)!important;color:var(--cream)!important;padding:9px 20px!important;border-radius:2px;font-weight:500!important;transition:background 0.2s!important;}
 .nav-cta:hover{background:var(--copper)!important;}
 .nav-diag{
@@ -988,6 +989,7 @@ footer{background:#0E0C09;padding:40px 6vw;display:flex;justify-content:space-be
     <li><a href="#about" id="nav-about">Sobre</a></li>
     <li><a href="#perfil" id="nav-perfil">Quem Somos</a></li>
     <li><a href="#markets" id="nav-markets">Mercados</a></li>
+    <li class="nav-ai-li"><a href="/ai/" id="nav-ai">IA aplicada</a></li>
     <li><button class="nav-diag" style="display:none;" onclick="openModal()"><span class="nav-dot"><span class="nav-dot-circle"></span></span><span id="nav-diag-label">Diagnóstico ao Vivo</span></button></li>
     <li><a href="#contact" class="nav-cta nav-links" id="nav-cta-label">Falar →</a></li>
     <li>
@@ -1551,7 +1553,7 @@ const weights=[
 const PAGE={
   pt:{
     navServices:'Serviços',navProcess:'Processo',navAbout:'Sobre',navPerfil:'Quem Somos',navMarkets:'Mercados',
-    navDiag:'Diagnóstico ao Vivo',navCta:'Falar →',
+    navDiag:'Diagnóstico ao Vivo',navCta:'Falar →',navAi:'IA aplicada',
     footerServices:'Serviços',footerProcess:'Processo',footerAbout:'Sobre',footerContact:'Contato',
     footerCopy:'© 2026 Xpannd · São Paulo, SP · Brasil',
     heroLine1:'Expanda para um',heroLine2:'novo mercado.',
@@ -1658,7 +1660,7 @@ const PAGE={
   },
   en:{
     navServices:'Services',navProcess:'Process',navAbout:'About',navPerfil:'Who We Are',navMarkets:'Markets',
-    navDiag:'Live Diagnostic',navCta:'Talk to us →',
+    navDiag:'Live Diagnostic',navCta:'Talk to us →',navAi:'Applied AI',
     footerServices:'Services',footerProcess:'Process',footerAbout:'About',footerContact:'Contact',
     footerCopy:'© 2026 Xpannd · São Paulo, SP · Brazil',
     heroLine1:'Expand into a',heroLine2:'new market.',
@@ -1767,7 +1769,7 @@ const PAGE={
   },
   es:{
     navServices:'Servicios',navProcess:'Proceso',navAbout:'Nosotros',navPerfil:'Quiénes Somos',navMarkets:'Mercados',
-    navDiag:'Diagnóstico en Vivo',navCta:'Hablar →',
+    navDiag:'Diagnóstico en Vivo',navCta:'Hablar →',navAi:'IA aplicada',
     footerServices:'Servicios',footerProcess:'Proceso',footerAbout:'Nosotros',footerContact:'Contacto',
     footerCopy:'© 2026 Xpannd · São Paulo, SP · Brasil',
     heroLine1:'Expande a un',heroLine2:'nuevo mercado.',
@@ -1885,6 +1887,7 @@ function renderPage(l){
   setText('nav-services',p.navServices);setText('nav-process',p.navProcess);
   setText('nav-about',p.navAbout);setText('nav-perfil',p.navPerfil);setText('nav-markets',p.navMarkets);
   setText('nav-diag-label',p.navDiag);setText('nav-cta-label',p.navCta);
+  setText('nav-ai',p.navAi);const navAi=document.getElementById('nav-ai');if(navAi){navAi.href=l==='pt'?'/ai/':'/ai/?lang=en';}
   // Footer
   setText('footer-services',p.footerServices);setText('footer-process',p.footerProcess);
   setText('footer-about',p.footerAbout);setText('footer-contact',p.footerContact);
